@@ -826,11 +826,11 @@ function setButtonFeedback(button, message, duration = 1400) {
   }, duration);
 }
 
-async function copyText(value, button) {
+async function copyText(value, button, successMessage = "已複製") {
   try {
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(value);
-      setButtonFeedback(button, "已複製");
+      setButtonFeedback(button, successMessage);
       return true;
     }
   } catch (_error) {
@@ -890,7 +890,7 @@ function setupImprovementEvents() {
     );
     if (improvementEls.copyFormatMenu) improvementEls.copyFormatMenu.hidden = true;
     if (improvementEls.copyFormatMenuButton) improvementEls.copyFormatMenuButton.setAttribute("aria-expanded", "false");
-    copyText(value, improvementEls.copyLineMenuItem);
+    copyText(value, improvementEls.copyFormatMenuButton, "已複製 LINE 簡版");
   });
 
   improvementEls.copyProposalMenuItem?.addEventListener("click", () => {
@@ -903,7 +903,7 @@ function setupImprovementEvents() {
     );
     if (improvementEls.copyFormatMenu) improvementEls.copyFormatMenu.hidden = true;
     if (improvementEls.copyFormatMenuButton) improvementEls.copyFormatMenuButton.setAttribute("aria-expanded", "false");
-    copyText(value, improvementEls.copyProposalMenuItem);
+    copyText(value, improvementEls.copyFormatMenuButton, "已複製報價素材");
   });
 
   improvementEls.copyCalibrationButton?.addEventListener("click", () => {

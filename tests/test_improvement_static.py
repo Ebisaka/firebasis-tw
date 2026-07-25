@@ -457,3 +457,10 @@ def test_improvement_html_accessibility_contract():
     assert 'href="/citation"' in html
     assert 'href="/docs"' in html
     assert "搜尋" not in html.split("<main", 1)[0]
+
+
+def test_improvement_format_menu_copy_feedback_contract():
+    js = (STATIC / "improvement.js").read_text(encoding="utf-8")
+
+    assert 'copyText(value, improvementEls.copyFormatMenuButton, "已複製 LINE 簡版")' in js
+    assert 'copyText(value, improvementEls.copyFormatMenuButton, "已複製報價素材")' in js

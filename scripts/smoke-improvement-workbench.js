@@ -73,6 +73,11 @@ async function verifyImprovementDemo(page, viewport) {
     state: "visible",
     timeout: 10000,
   });
+  await page.click("#copyFormatMenuButton");
+  await page.click("#copyLineMenuItem");
+  await page.waitForFunction(() => document.querySelector("#copyFormatMenuButton")?.textContent.includes("已複製 LINE 簡版"));
+  const copiedText = await page.evaluate(() => window.__lastClipboardText || "");
+  assert(copiedText.includes("差動探測器更換"), "Line copy should write selected item text to clipboard");
 
   const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
   assert(!hasOverflow, `Horizontal overflow at ${viewport.width}px`);
@@ -87,6 +92,16 @@ async function verifyImprovementDemo(page, viewport) {
 (async () => {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (text) => {
+          window.__lastClipboardText = text;
+        },
+      },
+    });
+  });
   const consoleErrors = [];
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
