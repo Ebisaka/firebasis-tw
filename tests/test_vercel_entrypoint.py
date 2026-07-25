@@ -1,9 +1,22 @@
+import importlib.util
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
-import app as vercel_entrypoint
+
+PROJECT_ROOT = Path(__file__).parents[1]
+
+
+def load_vercel_entrypoint():
+    spec = importlib.util.spec_from_file_location("vercel_entrypoint", PROJECT_ROOT / "api" / "index.py")
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_vercel_entrypoint_serves_packaged_demo_database():
+    vercel_entrypoint = load_vercel_entrypoint()
     client = TestClient(vercel_entrypoint.app)
 
     health = client.get("/health").json()

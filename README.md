@@ -48,7 +48,7 @@ Useful endpoints:
 
 ## Deploy To Vercel
 
-This repository includes a Vercel entrypoint at `app.py`.
+This repository includes a Vercel entrypoint at `api/index.py` and a catch-all rewrite in `vercel.json`.
 It creates the FastAPI app with the packaged demo database at `data/firelaw.sqlite`, so the GitHub-connected Vercel project can deploy the current workbench without running a live data update during build.
 
 Recommended flow:
