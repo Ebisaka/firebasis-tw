@@ -29,8 +29,10 @@ Changes: laws +0 ~1 -0; articles +2 ~3 -1
 .\.venv\Scripts\firelaw-api.exe serve --db data/firelaw.sqlite --host 127.0.0.1 --port 8000
 ```
 
-Open `http://127.0.0.1:8000/` for the FireBasis improvement evidence demo.
+Open `http://127.0.0.1:8000/` for the FireBasis product homepage.
+Open `http://127.0.0.1:8000/improvement` for the FireBasis improvement evidence demo.
 Open `http://127.0.0.1:8000/citation` for the local citation lookup page.
+Open `http://127.0.0.1:8000/home-preview` for the same homepage preview alias.
 Open `http://127.0.0.1:8000/docs` for developer API documentation.
 
 Useful endpoints:
@@ -38,6 +40,8 @@ Useful endpoints:
 - `GET /`
 - `GET /ui`
 - `GET /citation`
+- `GET /improvement`
+- `GET /home-preview`
 - `GET /health`
 - `GET /meta/sources`
 - `GET /meta/changes?limit=100`
@@ -57,9 +61,29 @@ Recommended flow:
 
 1. Push `main` to GitHub.
 2. Let the Vercel project `firebasis-tw` deploy from the connected GitHub repository.
-3. Open the deployed `/improvement` page for the guided trial demo.
+3. Open the deployed `/` page for the product homepage, then use `/improvement` for the guided trial demo.
 
 The deployed demo uses the committed SQLite snapshot. Run `firelaw-api update --db data/firelaw.sqlite`, verify locally, then commit the refreshed database when you want to publish a newer official-source snapshot.
+
+## Product Homepage
+
+`/` is the FireBasis product homepage. `/home-preview` remains as a temporary alias for the same narrative page while the product language is still being evaluated. `/improvement` remains the guided improvement evidence demo.
+
+Purpose: explain the FireBasis product flow clearly before the user enters the demo:
+
+```text
+缺失品項 -> 保守說明 -> 現場確認點 -> 候選官方依據 -> 報價前溝通素材
+```
+
+It must not introduce pricing judgment, AI legal answers, login, new API endpoints, database changes, or local-government rules.
+
+Optional repeatable preview smoke:
+
+```powershell
+node scripts\smoke-home-preview.js
+```
+
+The smoke checks desktop and 390px mobile width, verifies the hero workflow, scroll-highlight behavior, console cleanliness, and horizontal overflow.
 
 ## Local Semantic Search Beta
 

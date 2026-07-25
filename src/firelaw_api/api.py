@@ -27,7 +27,7 @@ def create_app(
 
     @app.get("/", include_in_schema=False)
     def index():
-        return FileResponse(STATIC_DIR / "improvement.html")
+        return FileResponse(STATIC_DIR / "home-preview.html")
 
     @app.get("/ui", include_in_schema=False)
     def ui():
@@ -41,10 +41,15 @@ def create_app(
     def improvement():
         return FileResponse(STATIC_DIR / "improvement.html")
 
+    @app.get("/home-preview", include_in_schema=False)
+    def home_preview():
+        return FileResponse(STATIC_DIR / "home-preview.html")
+
     @app.get("/assets/{asset_name}", include_in_schema=False)
     def asset(asset_name: str):
         allowed_assets = {
             "app.js": "text/javascript; charset=utf-8",
+            "home-preview.js": "text/javascript; charset=utf-8",
             "improvement.js": "text/javascript; charset=utf-8",
             "improvement-data.json": "application/json; charset=utf-8",
             "styles.css": "text/css; charset=utf-8",

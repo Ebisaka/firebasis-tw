@@ -20,12 +20,20 @@ def test_vercel_entrypoint_serves_packaged_demo_database():
     client = TestClient(vercel_entrypoint.app)
 
     health = client.get("/health").json()
+    home = client.get("/")
     improvement = client.get("/improvement")
+    home_preview = client.get("/home-preview")
     search = client.get("/search", params={"q": "滅火器", "limit": 1}).json()
 
     assert health["status"] == "ok"
     assert health["law_count"] >= 1
+    assert home.status_code == 200
+    assert "消防公司 / 檢修人員 / 報價前溝通" in home.text
+    assert "開啟改善依據反查" in home.text
     assert improvement.status_code == 200
     assert "消防改善依據反查" in improvement.text
     assert "工作台" not in improvement.text
+    assert home_preview.status_code == 200
+    assert "消防公司 / 檢修人員 / 報價前溝通" in home_preview.text
+    assert "依據素材預覽" in home_preview.text
     assert search["results"]

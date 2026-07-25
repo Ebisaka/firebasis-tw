@@ -28,6 +28,8 @@ def test_api_exposes_health_sources_laws_articles_and_search(tmp_path):
     ui = client.get("/ui")
     citation = client.get("/citation")
     improvement = client.get("/improvement")
+    home_preview = client.get("/home-preview")
+    home_preview_js = client.get("/assets/home-preview.js")
     improvement_js = client.get("/assets/improvement.js")
     improvement_data = client.get("/assets/improvement-data.json")
     favicon = client.get("/favicon.ico")
@@ -41,8 +43,9 @@ def test_api_exposes_health_sources_laws_articles_and_search(tmp_path):
     changes = client.get("/meta/changes").json()
 
     assert home.status_code == 200
-    assert "消防改善依據反查" in home.text
-    assert "僅提供候選官方依據與保守說明" in home.text
+    assert "消防公司 / 檢修人員 / 報價前溝通" in home.text
+    assert "報價前，先把" in home.text
+    assert "開啟改善依據反查" in home.text
     assert "工作台" not in home.text
     assert ui.status_code == 200
     assert "台灣消防法規引用" in ui.text
@@ -56,6 +59,19 @@ def test_api_exposes_health_sources_laws_articles_and_search(tmp_path):
     assert "Beta" in improvement.text
     assert "僅提供候選官方依據與保守說明" in improvement.text
     assert "工作台" not in improvement.text
+    assert home_preview.status_code == 200
+    assert "消防公司 / 檢修人員 / 報價前溝通" in home_preview.text
+    assert "報價前，先把" in home_preview.text
+    assert "消防缺失說清楚" in home_preview.text
+    assert "依據素材預覽" in home_preview.text
+    assert "缺失品項" in home_preview.text
+    assert "保守說明" in home_preview.text
+    assert "現場確認點" in home_preview.text
+    assert "候選官方依據" in home_preview.text
+    assert "報價前溝通素材" in home_preview.text
+    assert "工作台" not in home_preview.text
+    assert home_preview_js.status_code == 200
+    assert "text/javascript" in home_preview_js.headers["content-type"]
     assert improvement_js.status_code == 200
     assert "text/javascript" in improvement_js.headers["content-type"]
     assert improvement_data.status_code == 200
@@ -81,10 +97,13 @@ def test_api_missing_database_is_degraded_and_search_returns_service_error(tmp_p
     client = TestClient(create_app(tmp_path / "missing.sqlite"))
 
     assert client.get("/").status_code == 200
-    assert "消防改善依據反查" in client.get("/").text
+    assert "消防公司 / 檢修人員 / 報價前溝通" in client.get("/").text
     improvement = client.get("/improvement")
     assert improvement.status_code == 200
     assert "消防改善依據反查" in improvement.text
+    home_preview = client.get("/home-preview")
+    assert home_preview.status_code == 200
+    assert "消防公司 / 檢修人員 / 報價前溝通" in home_preview.text
     assert client.get("/health").json()["status"] == "degraded"
     assert client.get("/meta/changes").status_code == 503
     assert client.get("/search", params={"q": "滅火器"}).status_code == 503
