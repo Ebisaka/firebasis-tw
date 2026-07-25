@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>改善缺失依據與報價說明工作台</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body class="improvement-page">
+    <header class="topbar improvement-topbar">
+      <div>
+        <p class="eyebrow">改善缺失 / 報價說明工作台 <span class="beta-badge">Beta</span></p>
+        <h1>改善缺失依據與報價說明工作台</h1>
+        <p class="improvement-subtitle">缺失品項 → 保守說明 → 主要候選官方依據 → 報價前溝通素材</p>
+      </div>
+      <nav class="topnav" aria-label="主要連結">
+        <a href="/">法規引用頁</a>
+        <a href="/docs">開發者文件</a>
+      </nav>
+    </header>
+
+    <main class="shell improvement-shell">
+      <section class="notice improvement-notice" aria-label="服務聲明">
+        <strong>僅提供候選官方依據與保守說明</strong>
+        <span>不構成法律意見或最終檢修判定。</span>
+      </section>
+
+      <section class="improvement-brief" aria-label="工作流程">
+        <div class="brief-primary">
+          <span class="label">工作模式</span>
+          <strong>從缺失品項整理可溝通、可追溯、可校閱的報價前依據素材</strong>
+        </div>
+        <ol class="review-track" aria-label="目前流程">
+          <li><span>1</span>選缺失</li>
+          <li><span>2</span>講邊界</li>
+          <li><span>3</span>附依據</li>
+          <li><span>4</span>留校閱</li>
+        </ol>
+        <div class="status-line improvement-live-status" id="improvementStatus" role="status" aria-live="polite">
+          正在準備缺失品項與資料版本。
+        </div>
+      </section>
+
+      <section class="improvement-layout">
+        <aside class="improvement-list-panel" aria-label="缺失品項佇列">
+          <div class="improvement-panel-heading">
+            <div>
+              <span class="label">缺失 / 報價品項</span>
+              <strong>消防燈類與火警探測器類</strong>
+            </div>
+            <span id="improvementVersion" class="improvement-version">讀取中</span>
+          </div>
+          <div id="improvementItems" class="improvement-items" aria-live="polite">
+            載入改善品項中
+          </div>
+        </aside>
+
+        <section class="improvement-detail-panel improvement-case-panel" aria-label="目前缺失案例">
+          <div class="selected-item-header">
+            <div>
+              <span id="selectedCategory" class="label">尚未選取</span>
+              <h2 id="selectedTitle">請選擇一個改善品項</h2>
+            </div>
+            <div class="basis-quick-status" aria-label="官方依據狀態">
+              <span class="label">依據狀態</span>
+              <strong id="basisSummaryStatus">待查詢</strong>
+            </div>
+          </div>
+          <div id="caseStatusLine" class="case-status-line" role="status" aria-live="polite">
+            候選依據待查詢
+          </div>
+
+          <section class="case-strip" aria-label="目前品項資料">
+            <div class="selected-original" aria-label="原始品項">
+              <span class="label">原始品項</span>
+              <strong id="selectedOriginalText">尚未載入</strong>
+            </div>
+            <div class="case-strip-cell">
+              <span class="label">判讀邊界</span>
+              <div id="boundaryLabels" class="boundary-labels" aria-label="判讀邊界"></div>
+            </div>
+            <div class="case-strip-cell">
+              <span class="label">資料版本</span>
+              <strong id="sourceVersionLabel">讀取中</strong>
+            </div>
+          </section>
+
+          <section class="case-context-grid" aria-label="案例脈絡">
+            <div class="case-context-cell">
+              <span class="label">使用情境</span>
+              <p id="selectedScenario">尚未選取改善品項。</p>
+            </div>
+            <div class="case-context-cell">
+              <span class="label">業主常見問題</span>
+              <p id="selectedQuestion">尚未選取改善品項。</p>
+            </div>
+          </section>
+
+          <section class="case-section" aria-label="保守對外說明">
+            <div class="section-heading">
+              <span class="label">保守對外說明</span>
+              <strong>先說可確認的範圍，不替現場下結論</strong>
+            </div>
+            <div id="customerExplanation" class="customer-explanation"></div>
+            <div class="copy-action-row">
+              <button id="copyConservativeButton" type="button" class="primary-inline-action">複製保守說明</button>
+              <div class="copy-menu-wrap">
+                <button
+                  id="copyFormatMenuButton"
+                  type="button"
+                  class="secondary-action compact-action"
+                  aria-expanded="false"
+                  aria-controls="copyFormatMenu"
+                >
+                  更多格式
+                </button>
+                <div id="copyFormatMenu" class="copy-format-menu" role="menu" hidden>
+                  <button id="copyLineMenuItem" type="button" role="menuitem">LINE 簡版</button>
+                  <button id="copyProposalMenuItem" type="button" role="menuitem">完整報價素材</button>
+                </div>
+              </div>
+              <span>主按鈕只帶主要候選依據；其他候選依據需人工確認。</span>
+            </div>
+          </section>
+        </section>
+
+        <aside class="evidence-panel" aria-label="候選官方依據">
+          <div class="evidence-panel-heading">
+            <div>
+              <span class="label">候選官方依據</span>
+              <strong>官方依據參照</strong>
+            </div>
+            <span class="evidence-warning">候選，不作最終判定</span>
+          </div>
+          <div id="basisStatus" class="basis-status" aria-live="polite">候選依據待查詢</div>
+          <section class="primary-evidence" aria-label="主要候選官方依據">
+            <span class="label">主要候選官方依據</span>
+            <div id="primaryBasis" class="primary-basis"></div>
+          </section>
+          <details id="fullBasisDetails" class="secondary-details full-basis-details">
+            <summary id="fullBasisSummary">查看完整候選依據</summary>
+            <div id="basisList" class="basis-list"></div>
+          </details>
+        </aside>
+
+        <section class="improvement-detail-panel improvement-followup-panel" aria-label="內部確認與校閱備註">
+          <details id="siteCheckDetails" class="case-section secondary-details internal-case-section" aria-label="內部現場確認">
+            <summary>內部現場確認</summary>
+            <div class="internal-grid">
+              <section>
+                <span class="label">可能設備</span>
+                <ul id="equipmentCandidates"></ul>
+              </section>
+              <section>
+                <span class="label">可能缺失</span>
+                <ul id="defectCandidates"></ul>
+              </section>
+              <section>
+                <span class="label">現場確認</span>
+                <ul id="siteChecks"></ul>
+              </section>
+            </div>
+          </details>
+
+          <details id="calibrationDetails" class="calibration-panel secondary-details" aria-label="校閱備註">
+            <summary>校閱備註</summary>
+            <fieldset>
+              <legend>校閱備註</legend>
+              <label class="checkbox-row">
+                <input type="checkbox" name="calibrationFlag" value="法源方向錯" />
+                法源方向錯
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" name="calibrationFlag" value="說明講太滿" />
+                說明講太滿
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" name="calibrationFlag" value="缺少現場確認" />
+                缺少現場確認
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" name="calibrationFlag" value="這句可以" />
+                這句可以
+              </label>
+            </fieldset>
+            <label for="calibrationNote">校閱內容</label>
+            <textarea id="calibrationNote" rows="4" placeholder="例如：這個品項實務上要先看型式、位置或測試結果。"></textarea>
+            <div id="calibrationSummary" class="calibration-summary" aria-live="polite">尚未校閱。</div>
+            <button id="copyCalibrationButton" type="button" class="secondary-action">複製校閱 JSON</button>
+          </details>
+        </section>
+      </section>
+
+      <section class="copy-fallback" id="improvementCopyFallback" aria-label="複製備援" hidden>
+        <label for="improvementCopyFallbackText">無法直接寫入剪貼簿，請手動複製以下文字</label>
+        <textarea id="improvementCopyFallbackText" rows="8" readonly></textarea>
+      </section>
+    </main>
+
+    <script src="/assets/improvement.js" defer></script>
+  </body>
+</html>

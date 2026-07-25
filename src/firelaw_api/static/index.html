@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>台灣消防法規引用工作台</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">中央消防法規 / 官方引用工具</p>
+        <h1>台灣消防法規引用工作台</h1>
+      </div>
+      <nav class="topnav" aria-label="主要連結">
+        <a href="/improvement">改善依據反查</a>
+        <a href="/docs">開發者文件</a>
+      </nav>
+    </header>
+
+    <main class="shell">
+      <section class="notice" aria-label="服務聲明">
+        <strong>僅提供官方法規引用</strong>
+        <span>不構成法律意見，不提供 AI 摘要結論。</span>
+      </section>
+
+      <section class="source-strip" aria-label="資料狀態">
+        <div>
+          <span class="label">服務狀態</span>
+          <strong id="serviceStatus">檢查中</strong>
+        </div>
+        <div>
+          <span class="label">語料</span>
+          <strong id="corpusCount">讀取中</strong>
+        </div>
+        <div>
+          <span class="label">更新時間</span>
+          <strong id="updatedAt">讀取中</strong>
+        </div>
+        <div>
+          <span class="label">授權</span>
+          <a id="licenseLink" href="https://data.gov.tw/license" rel="noreferrer">政府資料開放授權條款第 1 版</a>
+        </div>
+      </section>
+
+      <section class="version-panel" aria-label="資料版本">
+        <div>
+          <span class="label">資料版本</span>
+          <strong id="versionSummary">讀取中</strong>
+        </div>
+        <div class="source-list" id="sourceList"></div>
+      </section>
+
+      <section class="changes-panel" aria-label="本次更新">
+        <div>
+          <span class="label">本次更新</span>
+          <strong id="changesSummary">讀取中</strong>
+        </div>
+        <details class="changes-details">
+          <summary>查看變更明細</summary>
+          <ol id="changesList" class="changes-list"></ol>
+        </details>
+      </section>
+
+      <form class="search-panel" id="searchForm">
+        <div class="field field-query">
+          <label for="queryInput">我想查...</label>
+          <input
+            id="queryInput"
+            name="q"
+            type="search"
+            placeholder="例如：檢修申報、防火管理人、滅火器設置"
+            autocomplete="off"
+            required
+          />
+        </div>
+        <div class="field field-law">
+          <label for="lawSelect">法規</label>
+          <select id="lawSelect" name="law_id">
+            <option value="">全部法規</option>
+          </select>
+        </div>
+        <button type="submit">搜尋</button>
+        <div class="query-chips" id="queryChips" aria-label="常見查詢">
+          <button type="button" data-query="檢修申報">檢修申報</button>
+          <button type="button" data-query="滅火器設置">滅火器設置</button>
+          <button type="button" data-query="防火管理人">防火管理人</button>
+          <button type="button" data-query="液化石油氣容器">液化石油氣容器</button>
+          <button type="button" data-query="店面要放幾個滅火器">店面滅火器</button>
+        </div>
+      </form>
+
+      <section class="citation-package" aria-label="引用包">
+        <div class="citation-package-header">
+          <div>
+            <span class="label">引用包</span>
+            <strong id="citationPackageCount">0 筆引用</strong>
+          </div>
+          <div class="field citation-format-field">
+            <label for="packageFormat">引用包格式</label>
+            <select id="packageFormat">
+              <option value="official">正式引用</option>
+              <option value="report">報告素材</option>
+              <option value="markdown">Markdown</option>
+            </select>
+          </div>
+          <div class="citation-package-actions">
+            <button type="button" id="copyPackageButton" class="secondary-action" disabled>複製引用包</button>
+            <button type="button" id="clearPackageButton" class="secondary-action" disabled>清空引用包</button>
+          </div>
+        </div>
+        <ol class="citation-package-list" id="citationPackageList"></ol>
+      </section>
+
+      <section class="copy-fallback" id="copyFallback" aria-label="複製備援" hidden>
+        <label for="copyFallbackText">無法直接寫入剪貼簿，請手動複製以下引用文字</label>
+        <textarea id="copyFallbackText" rows="8" readonly></textarea>
+      </section>
+
+      <section class="status-line" id="statusLine" role="status" aria-live="polite">
+        請輸入查詢，或使用上方專業任務捷徑開始建立官方引用。
+      </section>
+      <section class="assist-line" id="assistLine" aria-live="polite" hidden></section>
+      <section class="results" id="results" aria-label="搜尋結果"></section>
+    </main>
+
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
