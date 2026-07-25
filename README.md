@@ -29,13 +29,15 @@ Changes: laws +0 ~1 -0; articles +2 ~3 -1
 .\.venv\Scripts\firelaw-api.exe serve --db data/firelaw.sqlite --host 127.0.0.1 --port 8000
 ```
 
-Open `http://127.0.0.1:8000/` for the local citation lookup page.
+Open `http://127.0.0.1:8000/` for the FireBasis improvement evidence demo.
+Open `http://127.0.0.1:8000/citation` for the local citation lookup page.
 Open `http://127.0.0.1:8000/docs` for developer API documentation.
 
 Useful endpoints:
 
 - `GET /`
 - `GET /ui`
+- `GET /citation`
 - `GET /health`
 - `GET /meta/sources`
 - `GET /meta/changes?limit=100`
@@ -49,7 +51,7 @@ Useful endpoints:
 ## Deploy To Vercel
 
 This repository includes a Vercel entrypoint at `api/index.py` and a catch-all rewrite in `vercel.json`.
-It creates the FastAPI app with the packaged demo database at `data/firelaw.sqlite`, so the GitHub-connected Vercel project can deploy the current workbench without running a live data update during build.
+It creates the FastAPI app with the packaged demo database at `data/firelaw.sqlite`, so the GitHub-connected Vercel project can deploy the current demo without running a live data update during build.
 
 Recommended flow:
 
@@ -70,9 +72,9 @@ The default API remains SQLite FTS citation lookup. To try the local semantic be
 
 Semantic beta uses local embeddings and returns official citation results only.
 
-## Citation Workbench
+## Citation Reference Page
 
-The local page at `http://127.0.0.1:8000/` is a professional citation workbench for building official-source references. Search results can be copied as a single formal citation or added to an in-memory citation package.
+The local page at `http://127.0.0.1:8000/citation` is a professional citation reference page for building official-source references. Search results can be copied as a single formal citation or added to an in-memory citation package.
 
 Citation package formats:
 
@@ -80,11 +82,11 @@ Citation package formats:
 - `報告素材`: plain text with generated time, data update time, license, source hashes, and full article text.
 - `Markdown`: markdown report-friendly citation blocks.
 
-The workbench also reads `GET /meta/changes` to show the latest local update diff. This is a local before/after comparison between `firelaw-api update` runs, not real-time legal monitoring.
+The citation page also reads `GET /meta/changes` to show the latest local update diff. This is a local before/after comparison between `firelaw-api update` runs, not real-time legal monitoring.
 
-## 改善缺失依據與報價說明工作台
+## 消防改善依據反查 Beta
 
-Open `http://127.0.0.1:8000/improvement` for the separate deficiency/proposal-support workbench.
+Open `http://127.0.0.1:8000/` or `http://127.0.0.1:8000/improvement` for the deficiency/proposal-support demo.
 
 This beta starts from a small packaged JSON seed list of fire-light and fire-detector deficiency or quote items, then uses the existing official-citation API to find candidate official references. It is designed for cautious customer-facing wording, internal site-check prompts, proposal-support copy text, and expert calibration JSON export.
 
@@ -130,7 +132,7 @@ To add a packaged deficiency case, edit `src/firelaw_api/static/improvement-data
 
 Use conservative wording such as `可能涉及`, `需現場確認`, `候選官方依據`, and `不作最終判定`. Do not use conclusion phrases such as `一定要換`, `不換一定違法`, `消防隊一定會開罰`, `系統判定不合格`, `必須更換`, or `保證合格`.
 
-`reviewed_basis_candidates` records manually checked candidate citations. Its `review_status` should be `manual_seed`, meaning it is a seed hint reviewed for this demo, not a final legal conclusion. A local DB smoke test is optional but recommended before showing the workbench to trial users.
+`reviewed_basis_candidates` records manually checked candidate citations. Its `review_status` should be `manual_seed`, meaning it is a seed hint reviewed for this demo, not a final legal conclusion. A local DB smoke test is optional but recommended before showing the demo to trial users.
 
 ## Sources And License
 

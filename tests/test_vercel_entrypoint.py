@@ -26,5 +26,6 @@ def test_vercel_entrypoint_serves_packaged_demo_database():
     assert health["status"] == "ok"
     assert health["law_count"] >= 1
     assert improvement.status_code == 200
-    assert "改善缺失依據與報價說明工作台" in improvement.text
+    assert "消防改善依據反查" in improvement.text
+    assert "工作台" not in improvement.text
     assert search["results"]

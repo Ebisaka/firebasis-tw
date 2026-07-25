@@ -27,10 +27,14 @@ def create_app(
 
     @app.get("/", include_in_schema=False)
     def index():
-        return FileResponse(STATIC_DIR / "index.html")
+        return FileResponse(STATIC_DIR / "improvement.html")
 
     @app.get("/ui", include_in_schema=False)
     def ui():
+        return FileResponse(STATIC_DIR / "index.html")
+
+    @app.get("/citation", include_in_schema=False)
+    def citation():
         return FileResponse(STATIC_DIR / "index.html")
 
     @app.get("/improvement", include_in_schema=False)

@@ -41,7 +41,7 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-async function verifyWorkbench(page, viewport) {
+async function verifyImprovementDemo(page, viewport) {
   await page.setViewportSize(viewport);
   await page.goto(`${baseUrl}/improvement`, { waitUntil: "networkidle" });
   await page.locator("#copyConservativeButton").waitFor({ state: "visible" });
@@ -95,13 +95,13 @@ async function verifyWorkbench(page, viewport) {
     consoleErrors.push(error.message);
   });
   try {
-    await verifyWorkbench(page, { width: 1366, height: 900 });
-    await verifyWorkbench(page, { width: 390, height: 844 });
+    await verifyImprovementDemo(page, { width: 1366, height: 900 });
+    await verifyImprovementDemo(page, { width: 390, height: 844 });
     assert(consoleErrors.length === 0, `Console errors found:\n${consoleErrors.join("\n")}`);
   } finally {
     await browser.close();
   }
-  console.log("improvement workbench smoke passed");
+  console.log("improvement demo smoke passed");
 })().catch((error) => {
   console.error(error.message);
   process.exit(1);

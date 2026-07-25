@@ -26,6 +26,7 @@ def test_api_exposes_health_sources_laws_articles_and_search(tmp_path):
 
     home = client.get("/")
     ui = client.get("/ui")
+    citation = client.get("/citation")
     improvement = client.get("/improvement")
     improvement_js = client.get("/assets/improvement.js")
     improvement_data = client.get("/assets/improvement-data.json")
@@ -40,15 +41,21 @@ def test_api_exposes_health_sources_laws_articles_and_search(tmp_path):
     changes = client.get("/meta/changes").json()
 
     assert home.status_code == 200
-    assert "台灣消防法規引用工作台" in home.text
-    assert "不構成法律意見" in home.text
-    assert "我想查" in home.text
+    assert "消防改善依據反查" in home.text
+    assert "僅提供候選官方依據與保守說明" in home.text
+    assert "工作台" not in home.text
     assert ui.status_code == 200
-    assert "台灣消防法規引用工作台" in ui.text
+    assert "台灣消防法規引用" in ui.text
+    assert "我想查" in ui.text
+    assert "工作台" not in ui.text
+    assert citation.status_code == 200
+    assert "台灣消防法規引用" in citation.text
+    assert "我想查" in citation.text
     assert improvement.status_code == 200
-    assert "改善缺失依據與報價說明工作台" in improvement.text
+    assert "消防改善依據反查" in improvement.text
     assert "Beta" in improvement.text
     assert "僅提供候選官方依據與保守說明" in improvement.text
+    assert "工作台" not in improvement.text
     assert improvement_js.status_code == 200
     assert "text/javascript" in improvement_js.headers["content-type"]
     assert improvement_data.status_code == 200
@@ -74,9 +81,10 @@ def test_api_missing_database_is_degraded_and_search_returns_service_error(tmp_p
     client = TestClient(create_app(tmp_path / "missing.sqlite"))
 
     assert client.get("/").status_code == 200
+    assert "消防改善依據反查" in client.get("/").text
     improvement = client.get("/improvement")
     assert improvement.status_code == 200
-    assert "改善缺失依據與報價說明工作台" in improvement.text
+    assert "消防改善依據反查" in improvement.text
     assert client.get("/health").json()["status"] == "degraded"
     assert client.get("/meta/changes").status_code == 503
     assert client.get("/search", params={"q": "滅火器"}).status_code == 503

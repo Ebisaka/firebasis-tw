@@ -434,9 +434,10 @@ def test_reviewed_basis_candidates_match_local_database_smoke():
 def test_improvement_html_accessibility_contract():
     html = (STATIC / "improvement.html").read_text(encoding="utf-8")
 
-    assert "改善缺失依據與報價說明工作台" in html
+    assert "消防改善依據反查" in html
     assert "Beta" in html
     assert "僅提供候選官方依據與保守說明" in html
+    assert "工作台" not in html
     assert 'aria-label="缺失品項佇列"' in html
     assert 'aria-label="目前缺失案例"' in html
     assert 'aria-label="候選官方依據"' in html
@@ -453,6 +454,6 @@ def test_improvement_html_accessibility_contract():
     assert "高手校正" not in html
     assert 'id="calibrationSummary"' in html
     assert 'aria-live="polite"' in html
-    assert 'href="/"' in html
+    assert 'href="/citation"' in html
     assert 'href="/docs"' in html
     assert "搜尋" not in html.split("<main", 1)[0]

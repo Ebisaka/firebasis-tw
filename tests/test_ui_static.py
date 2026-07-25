@@ -44,10 +44,11 @@ def run_law_text_segmenter(sample: str) -> list[str]:
     return run_app_js_expression("formatLawTextSegments(sample)", {"sample": sample})
 
 
-def test_homepage_is_positioned_as_citation_workbench_without_default_search():
+def test_citation_page_is_positioned_without_default_search_or_workbench_label():
     index_html = (STATIC / "index.html").read_text(encoding="utf-8")
 
-    assert "台灣消防法規引用工作台" in index_html
+    assert "台灣消防法規引用" in index_html
+    assert "工作台" not in index_html
     assert "資料版本" in index_html
     assert "本次更新" in index_html
     assert "引用包格式" in index_html
