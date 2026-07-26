@@ -8,6 +8,7 @@ const BANNED_CONCLUSION_PHRASES = [
 const BANNED_REVIEW_PHRASES = [...BANNED_CONCLUSION_PHRASES, "違法", "必須更換", "保證合格"];
 
 const ALLOWED_IMPROVEMENT_CATEGORIES = ["消防燈類", "火警探測器類"];
+const TRUST_BOUNDARY_TEXT = "候選依據需人工確認；實際處理仍看現場狀態。";
 
 const improvementState = {
   items: [],
@@ -89,6 +90,19 @@ function formatDisplayDate(value) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function displayItemTitle(value) {
+  const raw = fallbackText(value, "未命名改善品項").trim();
+  const stripped = raw.replace(/\s+\d+\s*(組|盞|顆|只|具|支|台|個|片|處|座|套)\s*$/u, "").trim();
+  return stripped || raw;
+}
+
+function formatSeedVersionForDisplay(value) {
+  const raw = fallbackText(value, "未提供");
+  const matchedDate = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!matchedDate) return raw;
+  return `${matchedDate[1]}/${matchedDate[2]}/${matchedDate[3]}`;
 }
 
 function isNonEmptyArray(value) {
@@ -182,9 +196,11 @@ function validateImprovementData(payload) {
 }
 
 function buildDeficiencyCaseViewModel(item = {}) {
+  const displayName = fallbackText(item.display_name, "未命名改善品項");
   return {
     item_id: fallbackText(item.item_id, ""),
-    display_name: fallbackText(item.display_name, "未命名改善品項"),
+    display_name: displayName,
+    display_title: displayItemTitle(displayName),
     category: fallbackText(item.category, "未分類"),
     scenario: fallbackText(item.scenario, "未提供使用情境，需人工補充。"),
     customer_question: fallbackText(item.customer_question, "未提供業主常見問題，需人工補充。"),
@@ -311,9 +327,9 @@ function buildEvidenceViewModel(results = [], errors = [], warnings = []) {
     statusKind = "warning";
     summaryText = "未取得";
   } else if (hasBasis) {
-    statusText = "已取得候選依據，可複製保守說明";
+    statusText = "已取得候選依據";
     statusKind = "";
-    summaryText = `已取得 ${safeResults.length} 筆`;
+    summaryText = `候選 ${safeResults.length} 筆`;
   }
 
   return {
@@ -325,6 +341,7 @@ function buildEvidenceViewModel(results = [], errors = [], warnings = []) {
     statusText,
     statusKind,
     summaryText,
+    trustBoundaryText: TRUST_BOUNDARY_TEXT,
     errors: safeErrors,
     warnings: safeWarnings,
   };
@@ -558,7 +575,7 @@ function renderSeedItems() {
 
       const title = document.createElement("span");
       title.className = "improvement-item-title";
-      title.textContent = viewModel.display_name;
+      title.textContent = viewModel.display_title;
 
       const categoryLabel = document.createElement("span");
       categoryLabel.className = "improvement-item-category";
@@ -566,7 +583,7 @@ function renderSeedItems() {
 
       const evidenceStatus = document.createElement("span");
       evidenceStatus.className = "improvement-item-evidence";
-      evidenceStatus.textContent = viewModel.reviewed_basis_candidates.length ? "已有候選依據" : "需人工確認";
+      evidenceStatus.textContent = viewModel.reviewed_basis_candidates.length ? "有候選依據" : "待確認";
 
       button.append(title, categoryLabel, evidenceStatus);
       button.addEventListener("click", () => selectImprovementItem(item.item_id));
@@ -591,20 +608,16 @@ function renderSelectedItem() {
   if (!item) return;
   const viewModel = buildDeficiencyCaseViewModel(item);
 
-  if (improvementEls.selectedCategory) improvementEls.selectedCategory.textContent = viewModel.category;
-  if (improvementEls.selectedTitle) improvementEls.selectedTitle.textContent = viewModel.display_name;
+  if (improvementEls.selectedCategory) improvementEls.selectedCategory.textContent = "目前品項";
+  if (improvementEls.selectedTitle) improvementEls.selectedTitle.textContent = viewModel.display_title;
   if (improvementEls.selectedOriginalText) improvementEls.selectedOriginalText.textContent = viewModel.display_name;
   if (improvementEls.selectedScenario) improvementEls.selectedScenario.textContent = viewModel.scenario;
   if (improvementEls.selectedQuestion) improvementEls.selectedQuestion.textContent = viewModel.customer_question;
 
   if (improvementEls.boundaryLabels) {
-    improvementEls.boundaryLabels.replaceChildren(
-      ...viewModel.boundary_labels.map((label) => {
-        const pill = document.createElement("span");
-        pill.textContent = label;
-        return pill;
-      }),
-    );
+    const boundary = document.createElement("span");
+    boundary.textContent = TRUST_BOUNDARY_TEXT;
+    improvementEls.boundaryLabels.replaceChildren(boundary);
   }
 
   if (improvementEls.customerExplanation) {
@@ -667,18 +680,18 @@ function createBasisCard(result, variant = "") {
 
   const marker = document.createElement("span");
   marker.className = result.reviewed_basis ? "basis-marker reviewed" : "basis-marker";
-  marker.textContent = result.reviewed_basis ? "人工確認候選" : "候選條文";
+  marker.textContent = "候選依據";
 
   const title = document.createElement("h3");
   title.textContent = `${fallbackText(result.law_name)} ${fallbackText(result.article_no)}`;
 
   const scope = document.createElement("p");
   scope.className = "basis-scope";
-  scope.textContent = `依據範圍：${fallbackText(result.basis_scope, "未提供")}`;
+  scope.textContent = `範圍：${fallbackText(result.basis_scope, "未提供")}`;
 
   const review = document.createElement("p");
   review.className = "basis-review-reason";
-  review.textContent = `人工確認理由：${fallbackText(result.basis_reason, "未提供")}`;
+  review.textContent = `校閱理由：${fallbackText(result.basis_reason, "未提供")}`;
 
   const snippet = document.createElement("p");
   snippet.className = "basis-snippet";
@@ -686,7 +699,7 @@ function createBasisCard(result, variant = "") {
 
   const matched = document.createElement("p");
   matched.className = "basis-matched-query";
-  matched.textContent = `查核方向：${fallbackText(result.matched_query, "未提供")}`;
+  matched.textContent = `對照方向：${fallbackText(result.matched_query, "未提供")}`;
 
   const source = document.createElement("a");
   source.href = result.source_url || "#";
@@ -711,10 +724,12 @@ function renderBasisResults(results, errors = [], warnings = []) {
   if (improvementEls.basisSummaryStatus) {
     improvementEls.basisSummaryStatus.textContent = viewModel.summaryText;
   }
-  setCaseStatus(viewModel.statusText, viewModel.statusKind);
+  setCaseStatus(viewModel.hasBasis ? "已取得主要依據，可複製對外說明。" : viewModel.statusText, viewModel.statusKind);
   improvementEls.basisStatus.textContent = viewModel.warnings.length
-    ? `${viewModel.statusText}；${viewModel.warnings.length} 筆人工確認候選未由目前資料庫命中，需復核`
-    : viewModel.statusText;
+    ? `${viewModel.trustBoundaryText} ${viewModel.warnings.length} 筆候選依據需復核。`
+    : viewModel.hasBasis
+      ? viewModel.trustBoundaryText
+      : viewModel.statusText;
   improvementEls.basisStatus.className = viewModel.statusKind ? `basis-status ${viewModel.statusKind}` : "basis-status";
 
   if (!viewModel.hasBasis) {
@@ -782,7 +797,7 @@ function selectImprovementItem(itemId) {
   } else {
     renderBasisLoading();
   }
-  setImprovementStatus(`已選取：${item.display_name}`);
+  setImprovementStatus("已選取品項，已準備對外說明與候選依據。");
 
   const requestToken = ++improvementState.basisRequestToken;
   fetchBasisForItem(item, requestToken)
@@ -930,7 +945,7 @@ async function init() {
   setupImprovementEvents();
   try {
     const payload = await loadImprovementData();
-    if (improvementEls.version) improvementEls.version.textContent = payload.version;
+    if (improvementEls.version) improvementEls.version.textContent = `資料版本：${formatSeedVersionForDisplay(payload.version)}`;
     renderSeedItems();
     selectImprovementItem(payload.items[0].item_id);
   } catch (error) {

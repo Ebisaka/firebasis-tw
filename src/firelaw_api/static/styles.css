@@ -613,18 +613,18 @@ button:disabled {
 .boundary-labels {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 6px;
   min-width: min(260px, 100%);
 }
 
 .boundary-labels span {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface-soft);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--muted);
-  padding: 3px 8px;
-  font-size: 12px;
+  padding: 0;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -1228,7 +1228,7 @@ button:disabled {
 
 .case-strip {
   display: grid;
-  grid-template-columns: minmax(220px, 1.2fr) minmax(180px, 1fr) minmax(160px, 0.8fr);
+  grid-template-columns: minmax(260px, 1fr) minmax(160px, 0.72fr);
   gap: 1px;
   border-bottom: 1px solid var(--case-rule);
   background: var(--case-rule);
@@ -1276,9 +1276,7 @@ button:disabled {
 }
 
 .boundary-labels span {
-  border-color: #d5c16c;
-  background: #fff7d6;
-  color: #604b08;
+  color: #52645e;
 }
 
 .case-section {

@@ -155,6 +155,34 @@ def test_validate_improvement_data_rejects_bad_shape():
     assert any("reviewed_basis_candidates" in error for error in result["valid"]["errors"])
 
 
+def test_display_item_title_removes_trailing_quantity_without_changing_raw_item():
+    result = run_improvement_js_expression(
+        """
+        const raw = {
+          display_name: "出口標示燈更換 6 組",
+          category: "消防燈類",
+          scenario: "情境",
+          customer_question: "問題",
+        };
+        ({
+          stripped: displayItemTitle(raw.display_name),
+          modelTitle: buildDeficiencyCaseViewModel(raw).display_title,
+          rawDisplayName: buildDeficiencyCaseViewModel(raw).display_name,
+          embeddedNumber: displayItemTitle("P型1級受信總機"),
+          modelNumber: displayItemTitle("10型滅火器更換"),
+          unchanged: displayItemTitle("差動探測器更換"),
+        })
+        """
+    )
+
+    assert result["stripped"] == "出口標示燈更換"
+    assert result["modelTitle"] == "出口標示燈更換"
+    assert result["rawDisplayName"] == "出口標示燈更換 6 組"
+    assert result["embeddedNumber"] == "P型1級受信總機"
+    assert result["modelNumber"] == "10型滅火器更換"
+    assert result["unchanged"] == "差動探測器更換"
+
+
 def test_merge_basis_results_dedupes_and_keeps_query_source():
     result = run_improvement_js_expression(
         """
@@ -392,8 +420,10 @@ def test_evidence_view_model_and_conservative_explanation_prioritize_primary_bas
     assert result["viewModel"]["primaryBasis"]["article_id"] == "article-114"
     assert [item["article_id"] for item in result["viewModel"]["otherBasis"]] == ["article-91"]
     assert result["viewModel"]["hasMoreBasis"] is True
-    assert result["viewModel"]["statusText"] == "已取得候選依據，可複製保守說明"
+    assert result["viewModel"]["statusText"] == "已取得候選依據"
     assert result["viewModel"]["statusKind"] == ""
+    assert result["viewModel"]["summaryText"] == "候選 2 筆"
+    assert result["viewModel"]["trustBoundaryText"] == "候選依據需人工確認；實際處理仍看現場狀態。"
     assert result["unavailable"]["statusText"] == "資料庫未連線，仍可查看保守說明"
     assert result["unavailable"]["statusKind"] == "warning"
     assert "改善品項：" in result["conservative"]
@@ -457,6 +487,18 @@ def test_improvement_html_accessibility_contract():
     assert 'href="/citation"' in html
     assert 'href="/docs"' in html
     assert "搜尋" not in html.split("<main", 1)[0]
+
+
+def test_improvement_html_removes_internal_status_noise():
+    html = (STATIC / "improvement.html").read_text(encoding="utf-8")
+
+    assert "流程定位" not in html
+    assert "原始品項" not in html
+    assert "主要候選官方依據" not in html
+    assert "主按鈕只帶主要候選依據" not in html
+    assert "先說可確認的範圍，不替現場下結論" not in html
+    assert "保守對外說明" not in html
+    assert "資料版本" in html
 
 
 def test_improvement_format_menu_copy_feedback_contract():
