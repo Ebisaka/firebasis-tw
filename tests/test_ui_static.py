@@ -24,6 +24,7 @@ def run_app_js_expression(expression: str, context: dict | None = None):
           .replace(/\\ninit\\(\\);\\s*$/, "");
         const sandbox = {{
           document: {{ querySelector: () => null }},
+          URLSearchParams,
           ...{json.dumps(context)},
         }};
         vm.runInNewContext(code, sandbox);
@@ -49,9 +50,12 @@ def test_citation_page_is_positioned_without_default_search_or_workbench_label()
 
     assert "台灣消防法規引用" in index_html
     assert "工作台" not in index_html
+    assert 'href="/improvement">改善依據反查</a>' in index_html
+    assert 'href="/">改善依據反查</a>' not in index_html
     assert "資料版本" in index_html
     assert "本次更新" in index_html
-    assert "引用包格式" in index_html
+    assert "法源附件包" in index_html
+    assert "附件格式" in index_html
     assert "value=\"滅火器\"" not in index_html
     assert "檢修申報" in index_html
     assert "防火管理人" in index_html
@@ -67,7 +71,78 @@ def test_result_cards_include_law_text_reading_area_contract():
     assert ".law-text-panel" in styles
     assert "border-left" in styles
     assert "複製正式引用" in app_js
-    assert "加入引用包" in app_js
+    assert "加入法源附件包" in app_js
+    assert "引用詳情" in app_js
+
+
+def test_citation_url_params_are_parsed_for_detail_route():
+    result = run_app_js_expression(
+        'parseCitationUrlParams("?article_id=art-1&q=%E5%87%BA%E5%8F%A3%E6%A8%99%E7%A4%BA%E7%87%88&from=improvement&item_id=exit-sign")'
+    )
+
+    assert result == {
+        "article_id": "art-1",
+        "q": "出口標示燈",
+        "from": "improvement",
+        "item_id": "exit-sign",
+    }
+
+
+def test_citation_context_mapping_uses_improvement_seed_without_applicability_claim():
+    result = run_app_js_expression(
+        """
+        const payload = {
+          items: [
+            {
+              item_id: "exit-sign-replacement",
+              display_name: "出口標示燈更換 6 組",
+              category: "消防燈類",
+              reviewed_basis_candidates: [
+                {
+                  law_name: "各類場所消防安全設備設置標準",
+                  article_no: "第 154 條",
+                  candidate_query: "出口標示燈",
+                  basis_reason: "標示燈基準相關",
+                  basis_scope: "標示燈基準相關",
+                },
+              ],
+            },
+            {
+              item_id: "direction-sign-replacement",
+              display_name: "避難方向指示燈更換 4 組",
+              category: "消防燈類",
+              reviewed_basis_candidates: [
+                {
+                  law_name: "各類場所消防安全設備設置標準",
+                  article_no: "第 154 條",
+                  candidate_query: "避難方向指示燈",
+                  basis_reason: "方向標示品項查核方向",
+                  basis_scope: "標示燈基準相關",
+                },
+              ],
+            },
+          ],
+        };
+        state.citationContexts = buildCitationContextMap(payload);
+        const contexts = getCitationContextsForArticle({
+          law_name: "各類場所消防安全設備設置標準",
+          article_no: "第 154 條",
+        }, "direction-sign-replacement");
+        ({
+          count: contexts.length,
+          first: contexts[0].display_title,
+          visible: visibleCitationContexts(contexts, 1),
+        });
+        """
+    )
+
+    assert result["count"] == 2
+    assert result["first"] == "避難方向指示燈更換"
+    assert result["visible"]["hiddenCount"] == 1
+
+    app_js = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert "可人工對照情境" in app_js
+    assert "不代表本案適用結論" in app_js
 
 
 def test_law_text_segmenter_handles_numbered_chinese_enumeration():
@@ -191,10 +266,10 @@ def test_citation_package_formats_report_material_with_source_metadata():
         """
     )
 
-    assert "消防法規報告素材包" in result["report"]
+    assert "消防法規法源附件" in result["report"]
     assert "資料更新時間：2026/07/25" in result["report"]
     assert "授權：政府資料開放授權條款-第1版" in result["report"]
     assert "law https://data.gov.tw/dataset/18289 / 1,234 bytes / SHA-256 abcdef123456" in result["report"]
     assert "條文全文：\n滅火器應依下列規定設置。" in result["report"]
-    assert "# 消防法規引用包" in result["markdown"]
+    assert "# 消防法規法源附件" in result["markdown"]
     assert "## 1. 各類場所消防安全設備設置標準 第 31 條" in result["markdown"]

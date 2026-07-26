@@ -14,7 +14,7 @@
         <h1>台灣消防法規引用</h1>
       </div>
       <nav class="topnav" aria-label="主要連結">
-        <a href="/">改善依據反查</a>
+        <a href="/improvement">改善依據反查</a>
         <a href="/docs">開發者文件</a>
       </nav>
     </header>
@@ -23,6 +23,73 @@
       <section class="notice" aria-label="服務聲明">
         <strong>僅提供官方法規引用</strong>
         <span>不構成法律意見，不提供 AI 摘要結論。</span>
+      </section>
+
+      <div class="citation-tool-grid">
+        <div class="citation-main-column">
+          <form class="search-panel" id="searchForm">
+            <div class="field field-query">
+              <label for="queryInput">我想查...</label>
+              <input
+                id="queryInput"
+                name="q"
+                type="search"
+                placeholder="例如：檢修申報、防火管理人、出口標示燈"
+                autocomplete="off"
+                required
+              />
+            </div>
+            <div class="field field-law">
+              <label for="lawSelect">法規</label>
+              <select id="lawSelect" name="law_id">
+                <option value="">全部法規</option>
+              </select>
+            </div>
+            <button type="submit">搜尋</button>
+            <div class="query-chips" id="queryChips" aria-label="常見查詢">
+              <button type="button" data-query="檢修申報">檢修申報</button>
+              <button type="button" data-query="出口標示燈">出口標示燈</button>
+              <button type="button" data-query="避難方向指示燈">避難方向指示燈</button>
+              <button type="button" data-query="差動式探測器">差動式探測器</button>
+              <button type="button" data-query="防火管理人">防火管理人</button>
+            </div>
+          </form>
+
+          <section class="citation-detail-panel" id="citationDetail" aria-label="引用詳情" hidden></section>
+
+          <section class="status-line" id="statusLine" role="status" aria-live="polite">
+            請輸入查詢，或從改善依據反查開啟候選條文。
+          </section>
+          <section class="assist-line" id="assistLine" aria-live="polite" hidden></section>
+          <section class="results" id="results" aria-label="搜尋結果"></section>
+        </div>
+
+        <section class="citation-package" aria-label="法源附件包">
+          <div class="citation-package-header">
+            <div>
+              <span class="label">法源附件包</span>
+              <strong id="citationPackageCount">0 筆條文</strong>
+            </div>
+            <div class="field citation-format-field">
+              <label for="packageFormat">附件格式</label>
+              <select id="packageFormat">
+                <option value="official">正式引用</option>
+                <option value="report">報價附件</option>
+                <option value="markdown">Markdown</option>
+              </select>
+            </div>
+            <div class="citation-package-actions">
+              <button type="button" id="copyPackageButton" class="secondary-action" disabled>複製法源附件</button>
+              <button type="button" id="clearPackageButton" class="secondary-action" disabled>清空附件</button>
+            </div>
+          </div>
+          <ol class="citation-package-list" id="citationPackageList"></ol>
+        </section>
+      </div>
+
+      <section class="copy-fallback" id="copyFallback" aria-label="複製備援" hidden>
+        <label for="copyFallbackText">無法直接寫入剪貼簿，請手動複製以下引用文字</label>
+        <textarea id="copyFallbackText" rows="8" readonly></textarea>
       </section>
 
       <section class="source-strip" aria-label="資料狀態">
@@ -62,67 +129,6 @@
           <ol id="changesList" class="changes-list"></ol>
         </details>
       </section>
-
-      <form class="search-panel" id="searchForm">
-        <div class="field field-query">
-          <label for="queryInput">我想查...</label>
-          <input
-            id="queryInput"
-            name="q"
-            type="search"
-            placeholder="例如：檢修申報、防火管理人、滅火器設置"
-            autocomplete="off"
-            required
-          />
-        </div>
-        <div class="field field-law">
-          <label for="lawSelect">法規</label>
-          <select id="lawSelect" name="law_id">
-            <option value="">全部法規</option>
-          </select>
-        </div>
-        <button type="submit">搜尋</button>
-        <div class="query-chips" id="queryChips" aria-label="常見查詢">
-          <button type="button" data-query="檢修申報">檢修申報</button>
-          <button type="button" data-query="滅火器設置">滅火器設置</button>
-          <button type="button" data-query="防火管理人">防火管理人</button>
-          <button type="button" data-query="液化石油氣容器">液化石油氣容器</button>
-          <button type="button" data-query="店面要放幾個滅火器">店面滅火器</button>
-        </div>
-      </form>
-
-      <section class="citation-package" aria-label="引用包">
-        <div class="citation-package-header">
-          <div>
-            <span class="label">引用包</span>
-            <strong id="citationPackageCount">0 筆引用</strong>
-          </div>
-          <div class="field citation-format-field">
-            <label for="packageFormat">引用包格式</label>
-            <select id="packageFormat">
-              <option value="official">正式引用</option>
-              <option value="report">報告素材</option>
-              <option value="markdown">Markdown</option>
-            </select>
-          </div>
-          <div class="citation-package-actions">
-            <button type="button" id="copyPackageButton" class="secondary-action" disabled>複製引用包</button>
-            <button type="button" id="clearPackageButton" class="secondary-action" disabled>清空引用包</button>
-          </div>
-        </div>
-        <ol class="citation-package-list" id="citationPackageList"></ol>
-      </section>
-
-      <section class="copy-fallback" id="copyFallback" aria-label="複製備援" hidden>
-        <label for="copyFallbackText">無法直接寫入剪貼簿，請手動複製以下引用文字</label>
-        <textarea id="copyFallbackText" rows="8" readonly></textarea>
-      </section>
-
-      <section class="status-line" id="statusLine" role="status" aria-live="polite">
-        請輸入查詢，或使用上方專業任務捷徑開始建立官方引用。
-      </section>
-      <section class="assist-line" id="assistLine" aria-live="polite" hidden></section>
-      <section class="results" id="results" aria-label="搜尋結果"></section>
     </main>
 
     <script src="/assets/app.js" defer></script>

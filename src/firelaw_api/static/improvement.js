@@ -8,7 +8,7 @@ const BANNED_CONCLUSION_PHRASES = [
 const BANNED_REVIEW_PHRASES = [...BANNED_CONCLUSION_PHRASES, "違法", "必須更換", "保證合格"];
 
 const ALLOWED_IMPROVEMENT_CATEGORIES = ["消防燈類", "火警探測器類"];
-const TRUST_BOUNDARY_TEXT = "候選依據需人工確認；實際處理仍看現場狀態。";
+const TRUST_BOUNDARY_TEXT = "候選依據需人工確認；實際處理仍看現場設備型式與狀態。";
 
 const improvementState = {
   items: [],
@@ -308,6 +308,89 @@ function formatBasisLine(result) {
   return `- ${fallbackText(result.law_name)} ${fallbackText(result.article_no)}`;
 }
 
+function formatOfficialBasisCitation(result) {
+  return [
+    `${fallbackText(result?.law_name)} ${fallbackText(result?.article_no)}`,
+    `最新修正日：${fallbackText(result?.latest_amended_at, "未提供")}`,
+    `生效日：${fallbackText(result?.effective_at, "未提供")}`,
+    `官方來源：${fallbackText(result?.source_url, "未提供")}`,
+    "",
+    "條文全文：",
+    fallbackText(result?.text, "未提供"),
+  ].join("\n");
+}
+
+function buildCitationUrl(result, item = improvementState.selectedItem) {
+  if (!result?.article_id) return "";
+  const params = new URLSearchParams({
+    article_id: result.article_id,
+    q: fallbackText(result.matched_query || result.candidate_query, ""),
+    from: "improvement",
+  });
+  if (item?.item_id) params.set("item_id", item.item_id);
+  return `/citation?${params.toString()}`;
+}
+
+function excerptBasisText(value, matchedQuery = "", maxSegments = 2) {
+  const raw = fallbackText(value, "");
+  if (!raw) return [];
+  const segments = raw
+    .replace(/([：；。])\s*([一二三四五六七八九十百]+、|（[一二三四五六七八九十百]+）|\d+\.)/g, "$1\n$2")
+    .split(/\n+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+  const candidates = segments.length ? segments : [raw];
+  const terms = basisSearchTerms(matchedQuery);
+  if (!terms.length) return candidates.slice(0, maxSegments);
+  const matchedIndex = candidates.findIndex((segment) => terms.some((term) => segment.includes(term)));
+  if (matchedIndex < 0) return candidates.slice(0, maxSegments);
+  return candidates.slice(matchedIndex, matchedIndex + maxSegments);
+}
+
+function basisSearchTerms(value) {
+  return Array.from(
+    new Set(
+      fallbackText(value, "")
+        .split(/[,\s、，；;]+/u)
+        .map((term) => term.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+function appendHighlightedText(parent, value, terms = []) {
+  const source = fallbackText(value, "");
+  const safeTerms = Array.from(new Set(terms.filter(Boolean))).sort((a, b) => b.length - a.length);
+  if (!safeTerms.length) {
+    parent.textContent = source;
+    return;
+  }
+
+  let cursor = 0;
+  while (cursor < source.length) {
+    let matchTerm = "";
+    let matchIndex = -1;
+    for (const term of safeTerms) {
+      const index = source.indexOf(term, cursor);
+      if (index >= 0 && (matchIndex < 0 || index < matchIndex)) {
+        matchIndex = index;
+        matchTerm = term;
+      }
+    }
+    if (matchIndex < 0) {
+      parent.append(document.createTextNode(source.slice(cursor)));
+      break;
+    }
+    if (matchIndex > cursor) {
+      parent.append(document.createTextNode(source.slice(cursor, matchIndex)));
+    }
+    const mark = document.createElement("mark");
+    mark.textContent = source.slice(matchIndex, matchIndex + matchTerm.length);
+    parent.append(mark);
+    cursor = matchIndex + matchTerm.length;
+  }
+}
+
 function primaryBasisResult(results = []) {
   return Array.isArray(results) && results.length ? results[0] : null;
 }
@@ -577,16 +660,12 @@ function renderSeedItems() {
       title.className = "improvement-item-title";
       title.textContent = viewModel.display_title;
 
-      const categoryLabel = document.createElement("span");
-      categoryLabel.className = "improvement-item-category";
-      categoryLabel.textContent = viewModel.category;
-
-      const evidenceStatus = document.createElement("span");
-      evidenceStatus.className = "improvement-item-evidence";
-      evidenceStatus.textContent = viewModel.reviewed_basis_candidates.length ? "有候選依據" : "待確認";
-
-      button.append(title, categoryLabel, evidenceStatus);
-      button.addEventListener("click", () => selectImprovementItem(item.item_id));
+      button.append(title);
+      button.addEventListener("click", () => {
+        const menu = button.closest("details.item-switcher-menu");
+        selectImprovementItem(item.item_id);
+        if (menu) menu.open = false;
+      });
       group.append(button);
     });
 
@@ -608,7 +687,7 @@ function renderSelectedItem() {
   if (!item) return;
   const viewModel = buildDeficiencyCaseViewModel(item);
 
-  if (improvementEls.selectedCategory) improvementEls.selectedCategory.textContent = "目前品項";
+  if (improvementEls.selectedCategory) improvementEls.selectedCategory.textContent = viewModel.category;
   if (improvementEls.selectedTitle) improvementEls.selectedTitle.textContent = viewModel.display_title;
   if (improvementEls.selectedOriginalText) improvementEls.selectedOriginalText.textContent = viewModel.display_name;
   if (improvementEls.selectedScenario) improvementEls.selectedScenario.textContent = viewModel.scenario;
@@ -682,36 +761,80 @@ function createBasisCard(result, variant = "") {
   marker.className = result.reviewed_basis ? "basis-marker reviewed" : "basis-marker";
   marker.textContent = "候選依據";
 
+  const sourceLabel = document.createElement("span");
+  sourceLabel.className = "label";
+  sourceLabel.textContent = "法源";
+
   const title = document.createElement("h3");
   title.textContent = `${fallbackText(result.law_name)} ${fallbackText(result.article_no)}`;
 
-  const scope = document.createElement("p");
-  scope.className = "basis-scope";
-  scope.textContent = `範圍：${fallbackText(result.basis_scope, "未提供")}`;
+  const reasonGroup = document.createElement("section");
+  reasonGroup.className = "basis-info-group";
+  const reasonLabel = document.createElement("span");
+  reasonLabel.className = "label";
+  reasonLabel.textContent = "為什麼列入";
+  const reason = document.createElement("p");
+  reason.className = "basis-review-reason";
+  reason.textContent = fallbackText(
+    result.basis_reason,
+    result.matched_query ? `與「${result.matched_query}」查詢方向相符，仍需人工確認。` : "候選依據需人工確認。",
+  );
+  reasonGroup.append(reasonLabel, reason);
 
-  const review = document.createElement("p");
-  review.className = "basis-review-reason";
-  review.textContent = `校閱理由：${fallbackText(result.basis_reason, "未提供")}`;
+  const excerptGroup = document.createElement("section");
+  excerptGroup.className = "basis-info-group";
+  const excerptLabel = document.createElement("span");
+  excerptLabel.className = "label";
+  excerptLabel.textContent = "可對照片段";
+  const terms = basisSearchTerms(result.matched_query || result.candidate_query || result.basis_scope || "");
+  const excerpts = excerptBasisText(result.snippet || result.text, result.matched_query || result.candidate_query || "");
+  excerptGroup.append(excerptLabel);
+  (excerpts.length ? excerpts : ["未取得條文片段，需查看官方來源或引用頁。"]).forEach((excerpt) => {
+    const paragraph = document.createElement("p");
+    paragraph.className = "basis-snippet";
+    appendHighlightedText(paragraph, excerpt, terms);
+    excerptGroup.append(paragraph);
+  });
 
-  const snippet = document.createElement("p");
-  snippet.className = "basis-snippet";
-  snippet.textContent = fallbackText(result.snippet || result.text, "");
-
-  const matched = document.createElement("p");
-  matched.className = "basis-matched-query";
-  matched.textContent = `對照方向：${fallbackText(result.matched_query, "未提供")}`;
+  const boundaryGroup = document.createElement("section");
+  boundaryGroup.className = "basis-boundary-group";
+  const boundaryLabel = document.createElement("span");
+  boundaryLabel.className = "label";
+  boundaryLabel.textContent = "校閱邊界";
+  const boundary = document.createElement("p");
+  boundary.textContent = TRUST_BOUNDARY_TEXT;
+  boundaryGroup.append(boundaryLabel, boundary);
 
   const source = document.createElement("a");
   source.href = result.source_url || "#";
   source.target = "_blank";
   source.rel = "noreferrer";
   source.textContent = "官方來源";
+  source.className = "basis-source-link";
 
-  const cardMeta = document.createElement("div");
-  cardMeta.className = "basis-card-meta";
-  cardMeta.append(matched, source);
+  const actions = document.createElement("div");
+  actions.className = "basis-actions";
 
-  card.append(marker, title, scope, review, snippet, cardMeta);
+  const citationUrl = buildCitationUrl(result);
+  if (citationUrl) {
+    const viewCitation = document.createElement("a");
+    viewCitation.href = citationUrl;
+    viewCitation.target = "_blank";
+    viewCitation.rel = "noreferrer";
+    viewCitation.className = "primary-inline-action link-button";
+    viewCitation.textContent = "查看引用頁";
+    actions.append(viewCitation);
+  }
+
+  const copyCitation = document.createElement("button");
+  copyCitation.type = "button";
+  copyCitation.className = "secondary-action";
+  copyCitation.textContent = "複製引用";
+  copyCitation.addEventListener("click", () => copyText(formatOfficialBasisCitation(result), copyCitation));
+
+  actions.append(copyCitation, source);
+
+  card.append(marker, sourceLabel, title, reasonGroup, excerptGroup, boundaryGroup, actions);
   return card;
 }
 
@@ -724,11 +847,11 @@ function renderBasisResults(results, errors = [], warnings = []) {
   if (improvementEls.basisSummaryStatus) {
     improvementEls.basisSummaryStatus.textContent = viewModel.summaryText;
   }
-  setCaseStatus(viewModel.hasBasis ? "已取得主要依據，可複製對外說明。" : viewModel.statusText, viewModel.statusKind);
+  setCaseStatus(viewModel.hasBasis ? "已取得候選依據，可複製保守說明。" : viewModel.statusText, viewModel.statusKind);
   improvementEls.basisStatus.textContent = viewModel.warnings.length
-    ? `${viewModel.trustBoundaryText} ${viewModel.warnings.length} 筆候選依據需復核。`
+    ? `${viewModel.warnings.length} 筆候選依據需人工復核。`
     : viewModel.hasBasis
-      ? viewModel.trustBoundaryText
+      ? "請以引用頁與現場狀態完成人工確認。"
       : viewModel.statusText;
   improvementEls.basisStatus.className = viewModel.statusKind ? `basis-status ${viewModel.statusKind}` : "basis-status";
 

@@ -423,7 +423,7 @@ def test_evidence_view_model_and_conservative_explanation_prioritize_primary_bas
     assert result["viewModel"]["statusText"] == "已取得候選依據"
     assert result["viewModel"]["statusKind"] == ""
     assert result["viewModel"]["summaryText"] == "候選 2 筆"
-    assert result["viewModel"]["trustBoundaryText"] == "候選依據需人工確認；實際處理仍看現場狀態。"
+    assert result["viewModel"]["trustBoundaryText"] == "候選依據需人工確認；實際處理仍看現場設備型式與狀態。"
     assert result["unavailable"]["statusText"] == "資料庫未連線，仍可查看保守說明"
     assert result["unavailable"]["statusKind"] == "warning"
     assert "改善品項：" in result["conservative"]
@@ -436,6 +436,53 @@ def test_evidence_view_model_and_conservative_explanation_prioritize_primary_bas
     assert "不構成法律意見" in result["conservative"]
     for phrase in BANNED_REVIEW_PHRASES:
         assert phrase not in result["conservative"]
+
+
+def test_improvement_basis_card_v2_helpers_build_citation_link_and_excerpt():
+    result = run_improvement_js_expression(
+        """
+        const item = { item_id: "exit-sign-replacement" };
+        const basis = {
+          article_id: "article-154",
+          law_name: "各類場所消防安全設備設置標準",
+          article_no: "第 154 條",
+          matched_query: "出口標示燈",
+          latest_amended_at: "2026-01-01",
+          effective_at: "",
+          source_url: "https://law.moj.gov.tw/example",
+          text: "出口標示燈及避難方向指示燈，應符合出口標示燈相關規定。",
+        };
+        ({
+          url: buildCitationUrl(basis, item),
+          missingUrl: buildCitationUrl({ law_name: "消防法" }, item),
+          excerpt: excerptBasisText(basis.text, "出口標示燈", 2),
+          citation: formatOfficialBasisCitation(basis),
+        })
+        """
+    )
+
+    assert result["url"].startswith("/citation?")
+    assert "article_id=article-154" in result["url"]
+    assert "from=improvement" in result["url"]
+    assert "item_id=exit-sign-replacement" in result["url"]
+    assert result["missingUrl"] == ""
+    assert result["excerpt"] == ["出口標示燈及避難方向指示燈，應符合出口標示燈相關規定。"]
+    assert "各類場所消防安全設備設置標準 第 154 條" in result["citation"]
+    assert "條文全文：" in result["citation"]
+
+
+def test_improvement_basis_card_v2_contract_keeps_primary_citation_action_and_boundary():
+    improvement_js = (STATIC / "improvement.js").read_text(encoding="utf-8")
+    styles = (STATIC / "styles.css").read_text(encoding="utf-8")
+
+    assert "查看引用頁" in improvement_js
+    assert "複製引用" in improvement_js
+    assert "校閱邊界" in improvement_js
+    assert "為什麼列入" in improvement_js
+    assert "可對照片段" in improvement_js
+    assert "target = \"_blank\"" in improvement_js
+    assert "basis-actions" in styles
+    assert "basis-boundary-group" in styles
 
 
 def test_reviewed_basis_candidates_match_local_database_smoke():
@@ -468,24 +515,58 @@ def test_improvement_html_accessibility_contract():
     assert "Beta" in html
     assert "僅提供候選官方依據與保守說明" in html
     assert "工作台" not in html
-    assert 'aria-label="缺失品項佇列"' in html
-    assert 'aria-label="目前缺失案例"' in html
+    assert 'class="improvement-task-flow"' in html
+    assert 'class="improvement-layout"' not in html
+    assert 'aria-label="選擇缺失品項"' in html
+    assert 'aria-label="目前處理"' in html
     assert 'aria-label="候選官方依據"' in html
-    assert 'id="caseStatusLine"' in html
-    assert 'id="basisList"' in html
-    assert 'id="primaryBasis"' in html
-    assert 'id="fullBasisDetails"' in html
-    assert 'id="copyConservativeButton"' in html
+    assert 'id="item-section"' in html
+    assert 'id="explanation-section"' in html
+    assert 'id="site-check-section"' in html
+    assert 'id="basis-section"' in html
+    assert 'id="copy-section"' in html
+    for dom_id in [
+        "improvementStatus",
+        "improvementVersion",
+        "improvementItems",
+        "selectedCategory",
+        "selectedTitle",
+        "selectedScenario",
+        "selectedQuestion",
+        "caseStatusLine",
+        "basisSummaryStatus",
+        "sourceVersionLabel",
+        "boundaryLabels",
+        "customerExplanation",
+        "equipmentCandidates",
+        "defectCandidates",
+        "siteChecks",
+        "basisStatus",
+        "primaryBasis",
+        "fullBasisDetails",
+        "fullBasisSummary",
+        "basisList",
+        "copyConservativeButton",
+        "copyFormatMenuButton",
+        "copyFormatMenu",
+        "copyLineMenuItem",
+        "copyProposalMenuItem",
+        "copyCalibrationButton",
+        "calibrationNote",
+        "calibrationSummary",
+        "improvementCopyFallback",
+        "improvementCopyFallbackText",
+    ]:
+        assert html.count(f'id="{dom_id}"') == 1
     assert "複製保守說明" in html
-    assert 'id="copyFormatMenu"' in html
     assert "LINE 簡版" in html
     assert "完整報價素材" in html
     assert "校閱備註" in html
     assert "高手校正" not in html
-    assert 'id="calibrationSummary"' in html
     assert 'aria-live="polite"' in html
     assert 'href="/citation"' in html
     assert 'href="/docs"' in html
+    assert 'href="#basis-section"' in html
     assert "搜尋" not in html.split("<main", 1)[0]
 
 
@@ -493,12 +574,24 @@ def test_improvement_html_removes_internal_status_noise():
     html = (STATIC / "improvement.html").read_text(encoding="utf-8")
 
     assert "流程定位" not in html
+    assert "依據狀態" not in html
     assert "原始品項" not in html
     assert "主要候選官方依據" not in html
+    assert "主要依據" not in html
     assert "主按鈕只帶主要候選依據" not in html
     assert "先說可確認的範圍，不替現場下結論" not in html
     assert "保守對外說明" not in html
     assert "資料版本" in html
+
+
+def test_improvement_css_uses_long_scroll_contract():
+    css = (STATIC / "styles.css").read_text(encoding="utf-8")
+
+    assert ".improvement-page .improvement-task-flow" in css
+    assert ".improvement-page .item-switcher" in css
+    assert ".improvement-page .task-section" in css
+    assert ".improvement-page .task-section-nav" in css
+    assert "scroll-margin-top" in css
 
 
 def test_improvement_format_menu_copy_feedback_contract():

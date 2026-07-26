@@ -37,6 +37,10 @@ def test_api_exposes_health_sources_laws_articles_and_search(tmp_path):
     sources = client.get("/meta/sources").json()
     laws = client.get("/laws").json()
     law = client.get(f"/laws/{laws[0]['law_id']}").json()
+    citation_detail_page = client.get(
+        "/citation",
+        params={"article_id": law["articles"][0]["article_id"], "q": "滅火器", "from": "improvement"},
+    )
     article = client.get(f"/articles/{law['articles'][0]['article_id']}").json()
     search = client.get("/search", params={"q": "滅火器"}).json()
     assist = client.get("/search/assist", params={"q": "店面要放幾個滅火器"}).json()
@@ -54,6 +58,9 @@ def test_api_exposes_health_sources_laws_articles_and_search(tmp_path):
     assert citation.status_code == 200
     assert "台灣消防法規引用" in citation.text
     assert "我想查" in citation.text
+    assert citation_detail_page.status_code == 200
+    assert "引用詳情" in citation_detail_page.text
+    assert ui.status_code == citation.status_code
     assert improvement.status_code == 200
     assert "消防改善依據反查" in improvement.text
     assert "Beta" in improvement.text

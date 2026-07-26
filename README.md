@@ -98,12 +98,12 @@ Semantic beta uses local embeddings and returns official citation results only.
 
 ## Citation Reference Page
 
-The local page at `http://127.0.0.1:8000/citation` is a professional citation reference page for building official-source references. Search results can be copied as a single formal citation or added to an in-memory citation package.
+The local page at `http://127.0.0.1:8000/citation` is a professional citation reference page for building official-source references. Search results can be copied as a single formal citation or added to an in-memory law-source attachment package.
 
-Citation package formats:
+Law-source attachment formats:
 
 - `正式引用`: plain official citation blocks.
-- `報告素材`: plain text with generated time, data update time, license, source hashes, and full article text.
+- `報價附件`: plain text with generated time, data update time, license, source hashes, and full article text.
 - `Markdown`: markdown report-friendly citation blocks.
 
 The citation page also reads `GET /meta/changes` to show the latest local update diff. This is a local before/after comparison between `firelaw-api update` runs, not real-time legal monitoring.

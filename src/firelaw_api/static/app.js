@@ -3,6 +3,7 @@ const state = {
   citationPackage: [],
   sourceMeta: null,
   changeMeta: null,
+  citationContexts: new Map(),
 };
 
 const els = {
@@ -28,6 +29,7 @@ const els = {
   clearPackageButton: document.querySelector("#clearPackageButton"),
   copyFallback: document.querySelector("#copyFallback"),
   copyFallbackText: document.querySelector("#copyFallbackText"),
+  citationDetail: document.querySelector("#citationDetail"),
 };
 
 function setStatus(message, kind = "") {
@@ -62,15 +64,43 @@ function text(value) {
   return value === null || value === undefined || value === "" ? "未提供" : String(value);
 }
 
+function toCitationItem(raw = {}) {
+  return {
+    article_id: raw.article_id || "",
+    law_id: raw.law_id || "",
+    law_name: text(raw.law_name),
+    article_no: text(raw.article_no),
+    path: raw.path || "",
+    text: text(raw.text),
+    source_url: text(raw.source_url),
+    category: raw.category || "",
+    level: raw.level || "",
+    latest_amended_at: raw.latest_amended_at || "",
+    effective_at: raw.effective_at || "",
+    snippet: raw.snippet || "",
+    score: raw.score,
+  };
+}
+
+function articleCitationLabel(item = {}) {
+  const citation = toCitationItem(item);
+  return `${citation.law_name} ${citation.article_no}`.trim();
+}
+
+function citationContextKey(lawName, articleNo) {
+  return `${text(lawName).trim()}|${text(articleNo).trim()}`;
+}
+
 function formatOfficialCitation(item) {
+  const citation = toCitationItem(item);
   return [
-    `${text(item.law_name)} ${text(item.article_no)}`,
-    `最新修正日：${text(item.latest_amended_at)}`,
-    `生效日：${text(item.effective_at)}`,
-    `官方來源：${text(item.source_url)}`,
+    articleCitationLabel(citation),
+    `最新修正日：${text(citation.latest_amended_at)}`,
+    `生效日：${text(citation.effective_at)}`,
+    `官方來源：${text(citation.source_url)}`,
     "",
     "條文全文：",
-    text(item.text),
+    text(citation.text),
   ].join("\n");
 }
 
@@ -89,7 +119,7 @@ function sourceMetadataLines(meta = state.sourceMeta) {
 
 function formatReportCitationPackage(meta = state.sourceMeta) {
   const lines = [
-    "消防法規報告素材包",
+    "消防法規法源附件",
     `產生時間：${formatDate(new Date().toISOString())}`,
     `資料更新時間：${formatDate(meta?.updated_at)}`,
     `授權：${text(meta?.license?.name)}`,
@@ -100,14 +130,15 @@ function formatReportCitationPackage(meta = state.sourceMeta) {
   ];
 
   state.citationPackage.forEach((item, index) => {
+    const citation = toCitationItem(item);
     lines.push(
-      `${index + 1}. ${text(item.law_name)} ${text(item.article_no)}`,
-      `最新修正日：${text(item.latest_amended_at)}`,
-      `生效日：${text(item.effective_at)}`,
-      `官方來源：${text(item.source_url)}`,
+      `${index + 1}. ${articleCitationLabel(citation)}`,
+      `最新修正日：${text(citation.latest_amended_at)}`,
+      `生效日：${text(citation.effective_at)}`,
+      `官方來源：${text(citation.source_url)}`,
       "",
       "條文全文：",
-      text(item.text),
+      text(citation.text),
       "",
       "---",
     );
@@ -117,7 +148,7 @@ function formatReportCitationPackage(meta = state.sourceMeta) {
 
 function formatMarkdownCitationPackage(meta = state.sourceMeta) {
   const lines = [
-    "# 消防法規引用包",
+    "# 消防法規法源附件",
     "",
     `- 產生時間：${formatDate(new Date().toISOString())}`,
     `- 資料更新時間：${formatDate(meta?.updated_at)}`,
@@ -128,16 +159,17 @@ function formatMarkdownCitationPackage(meta = state.sourceMeta) {
   ];
 
   state.citationPackage.forEach((item, index) => {
+    const citation = toCitationItem(item);
     lines.push(
-      `## ${index + 1}. ${text(item.law_name)} ${text(item.article_no)}`,
+      `## ${index + 1}. ${articleCitationLabel(citation)}`,
       "",
-      `- 最新修正日：${text(item.latest_amended_at)}`,
-      `- 生效日：${text(item.effective_at)}`,
-      `- 官方來源：${text(item.source_url)}`,
+      `- 最新修正日：${text(citation.latest_amended_at)}`,
+      `- 生效日：${text(citation.effective_at)}`,
+      `- 官方來源：${text(citation.source_url)}`,
       "",
       "### 條文全文",
       "",
-      text(item.text),
+      text(citation.text),
       "",
     );
   });
@@ -156,7 +188,7 @@ function addCitationPackageItem(item) {
   if (!item || !item.article_id || isInCitationPackage(item.article_id)) {
     return false;
   }
-  state.citationPackage.push({ ...item });
+  state.citationPackage.push(toCitationItem(item));
   return true;
 }
 
@@ -219,6 +251,143 @@ function formatLawTextSegments(value) {
     .map((segment) => segment.trim())
     .filter(Boolean);
   return segments.length ? segments : [rawText];
+}
+
+function displayContextTitle(value) {
+  const raw = text(value).trim();
+  const stripped = raw.replace(/\s+\d+\s*(組|盞|顆|只|具|支|台|個|片|處|座|套)\s*$/u, "").trim();
+  return stripped || raw;
+}
+
+function buildCitationContextMap(payload = {}) {
+  const contextMap = new Map();
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  for (const item of items) {
+    const candidates = Array.isArray(item.reviewed_basis_candidates) ? item.reviewed_basis_candidates : [];
+    for (const basis of candidates) {
+      const key = citationContextKey(basis?.law_name, basis?.article_no);
+      if (key === "未提供|未提供") continue;
+      const existing = contextMap.get(key) || [];
+      if (existing.some((context) => context.item_id === item.item_id)) continue;
+      existing.push({
+        item_id: item.item_id || "",
+        display_title: displayContextTitle(item.display_name || item.item_id || "未命名品項"),
+        category: item.category || "",
+        candidate_query: basis.candidate_query || "",
+        basis_reason: basis.basis_reason || "",
+        basis_scope: basis.basis_scope || "",
+      });
+      contextMap.set(key, existing);
+    }
+  }
+  return contextMap;
+}
+
+function getCitationContextsForArticle(item = {}, itemId = "") {
+  const citation = toCitationItem(item);
+  const contexts = state.citationContexts.get(citationContextKey(citation.law_name, citation.article_no)) || [];
+  if (!itemId) return contexts;
+  return [...contexts].sort((first, second) => {
+    if (first.item_id === itemId) return -1;
+    if (second.item_id === itemId) return 1;
+    return 0;
+  });
+}
+
+function visibleCitationContexts(contexts = [], limit = 4) {
+  const safeContexts = Array.isArray(contexts) ? contexts : [];
+  return {
+    visible: safeContexts.slice(0, limit),
+    hiddenCount: Math.max(0, safeContexts.length - limit),
+  };
+}
+
+function parseCitationUrlParams(search = "") {
+  const queryString = search || (typeof window !== "undefined" ? window.location.search : "");
+  const params = new URLSearchParams(queryString);
+  return {
+    article_id: params.get("article_id") || "",
+    q: params.get("q") || "",
+    from: params.get("from") || "",
+    item_id: params.get("item_id") || "",
+  };
+}
+
+function excerptArticleText(value, matchedQuery = "", maxSegments = 2) {
+  const segments = formatLawTextSegments(value);
+  const terms = searchTerms(matchedQuery);
+  if (!terms.length) return segments.slice(0, maxSegments);
+  const index = segments.findIndex((segment) => terms.some((term) => segment.includes(term)));
+  if (index < 0) return segments.slice(0, maxSegments);
+  return segments.slice(index, index + maxSegments);
+}
+
+function searchTerms(value) {
+  return Array.from(
+    new Set(
+      text(value)
+        .split(/[,\s、，；;]+/u)
+        .map((term) => term.trim())
+        .filter((term) => term && term !== "未提供"),
+    ),
+  );
+}
+
+function appendHighlightedText(parent, value, terms = []) {
+  const source = text(value);
+  const safeTerms = Array.from(new Set(terms.filter(Boolean))).sort((a, b) => b.length - a.length);
+  if (!safeTerms.length) {
+    parent.textContent = source;
+    return;
+  }
+
+  let cursor = 0;
+  while (cursor < source.length) {
+    let matchTerm = "";
+    let matchIndex = -1;
+    for (const term of safeTerms) {
+      const index = source.indexOf(term, cursor);
+      if (index >= 0 && (matchIndex < 0 || index < matchIndex)) {
+        matchIndex = index;
+        matchTerm = term;
+      }
+    }
+
+    if (matchIndex < 0) {
+      parent.append(document.createTextNode(source.slice(cursor)));
+      break;
+    }
+    if (matchIndex > cursor) {
+      parent.append(document.createTextNode(source.slice(cursor, matchIndex)));
+    }
+    const mark = document.createElement("mark");
+    mark.textContent = source.slice(matchIndex, matchIndex + matchTerm.length);
+    parent.append(mark);
+    cursor = matchIndex + matchTerm.length;
+  }
+}
+
+function lawTextPanelNode(label, value) {
+  const lawTextPanel = document.createElement("section");
+  lawTextPanel.className = "law-text-panel";
+  lawTextPanel.setAttribute("aria-label", label);
+
+  const lawTextLabel = document.createElement("div");
+  lawTextLabel.className = "law-text-label";
+  lawTextLabel.textContent = label;
+
+  const lawText = document.createElement("div");
+  lawText.className = "full-text";
+  lawText.append(
+    ...formatLawTextSegments(value).map((segment) => {
+      const paragraph = document.createElement("p");
+      paragraph.textContent = segment;
+      return paragraph;
+    }),
+  );
+
+  lawTextPanel.append(lawTextLabel, lawText);
+  return lawTextPanel;
 }
 
 async function fetchJson(url) {
@@ -343,6 +512,180 @@ function renderChangesUnavailable(message) {
   els.changesList.append(item);
 }
 
+async function loadCitationContexts() {
+  try {
+    const payload = await fetchJson("/assets/improvement-data.json");
+    state.citationContexts = buildCitationContextMap(payload);
+  } catch (_error) {
+    state.citationContexts = new Map();
+  }
+}
+
+function setCitationDetailStatus(message, kind = "") {
+  if (!els.citationDetail) return;
+  els.citationDetail.hidden = false;
+  els.citationDetail.className = kind ? `citation-detail-panel ${kind}` : "citation-detail-panel";
+  els.citationDetail.replaceChildren();
+  const label = document.createElement("span");
+  label.className = "label";
+  label.textContent = "引用詳情";
+  const paragraph = document.createElement("p");
+  paragraph.textContent = message;
+  els.citationDetail.append(label, paragraph);
+}
+
+function citationContextSection(item, params = {}) {
+  const section = document.createElement("section");
+  section.className = "citation-context-panel";
+
+  const label = document.createElement("span");
+  label.className = "label";
+  label.textContent = "可人工對照情境";
+  section.append(label);
+
+  const contexts = getCitationContextsForArticle(item, params.item_id);
+  if (contexts.length) {
+    const chips = document.createElement("div");
+    chips.className = "context-chip-list";
+    const { visible, hiddenCount } = visibleCitationContexts(contexts);
+    for (const context of visible) {
+      const chip = document.createElement("span");
+      chip.className = "context-chip";
+      chip.textContent = context.display_title;
+      chips.append(chip);
+    }
+    if (hiddenCount) {
+      const overflow = document.createElement("span");
+      overflow.className = "context-chip more";
+      overflow.textContent = `另有 ${hiddenCount} 個可人工對照情境`;
+      chips.append(overflow);
+    }
+    section.append(chips);
+  } else {
+    const empty = document.createElement("p");
+    empty.className = "muted-note";
+    empty.textContent = "此條目前沒有改善情境標記；仍可作為正式條文引用。";
+    section.append(empty);
+  }
+
+  const note = document.createElement("p");
+  note.className = "boundary-note";
+  note.textContent = "僅表示此條曾作為候選依據，不代表本案適用結論。";
+  section.append(note);
+  return section;
+}
+
+function citationExcerptNode(item, query = "") {
+  const section = document.createElement("section");
+  section.className = "citation-excerpt-panel";
+  const label = document.createElement("span");
+  label.className = "label";
+  label.textContent = "可對照片段";
+  section.append(label);
+
+  const terms = searchTerms(query);
+  const excerpts = excerptArticleText(item.text, query);
+  for (const excerpt of excerpts) {
+    const paragraph = document.createElement("p");
+    appendHighlightedText(paragraph, excerpt, terms);
+    section.append(paragraph);
+  }
+  return section;
+}
+
+function citationActionsNode(item, addLabel = "加入法源附件包") {
+  const citation = toCitationItem(item);
+  const actions = document.createElement("div");
+  actions.className = "result-actions citation-actions";
+
+  const copyCitation = document.createElement("button");
+  copyCitation.type = "button";
+  copyCitation.className = "primary-inline-action";
+  copyCitation.textContent = "複製正式引用";
+  copyCitation.addEventListener("click", () => copyText(formatOfficialCitation(citation), copyCitation));
+
+  const addToPackage = document.createElement("button");
+  addToPackage.type = "button";
+  addToPackage.className = "secondary-action";
+  addToPackage.textContent = isInCitationPackage(citation.article_id) ? "已在法源附件包" : addLabel;
+  addToPackage.disabled = isInCitationPackage(citation.article_id);
+  addToPackage.addEventListener("click", () => {
+    const added = addCitationPackageItem(citation);
+    renderCitationPackage();
+    addToPackage.textContent = added ? "已加入法源附件包" : "已在法源附件包";
+    addToPackage.disabled = true;
+  });
+
+  actions.append(copyCitation, addToPackage);
+
+  if (citation.source_url !== "未提供") {
+    const source = document.createElement("a");
+    source.href = citation.source_url;
+    source.target = "_blank";
+    source.rel = "noreferrer";
+    source.className = "secondary-link";
+    source.textContent = "官方來源";
+    actions.append(source);
+  }
+
+  return actions;
+}
+
+function renderCitationDetail(item, params = {}) {
+  if (!els.citationDetail) return;
+  const citation = toCitationItem(item);
+  els.citationDetail.hidden = false;
+  els.citationDetail.className = "citation-detail-panel";
+  els.citationDetail.replaceChildren();
+
+  if (params.from === "improvement") {
+    const origin = document.createElement("p");
+    origin.className = "citation-origin-note";
+    origin.textContent = "從改善依據反查開啟。回到原頁可繼續校閱其他候選依據。";
+    els.citationDetail.append(origin);
+  }
+
+  const header = document.createElement("div");
+  header.className = "citation-detail-header";
+  const label = document.createElement("span");
+  label.className = "label";
+  label.textContent = "引用詳情";
+  const title = document.createElement("h2");
+  title.textContent = articleCitationLabel(citation);
+  header.append(label, title);
+
+  const meta = document.createElement("div");
+  meta.className = "meta-row";
+  const amended = document.createElement("span");
+  amended.textContent = `最新修正日：${text(citation.latest_amended_at)}`;
+  const effective = document.createElement("span");
+  effective.textContent = `生效日：${text(citation.effective_at)}`;
+  meta.append(amended, effective);
+
+  els.citationDetail.append(
+    header,
+    citationContextSection(citation, params),
+    citationExcerptNode(citation, params.q),
+    lawTextPanelNode("條文全文", citation.text),
+    citationActionsNode(citation),
+    meta,
+  );
+}
+
+async function loadCitationDetail(params) {
+  if (!params.article_id) return;
+  if (params.q && els.query) {
+    els.query.value = params.q;
+  }
+  setCitationDetailStatus("引用詳情載入中");
+  try {
+    const item = await fetchJson(`/articles/${encodeURIComponent(params.article_id)}`);
+    renderCitationDetail(item, params);
+  } catch (_error) {
+    setCitationDetailStatus("找不到這筆條文，請用搜尋重新查找。", "warning");
+  }
+}
+
 function changeTotal(counts, suffix) {
   return Number(counts[`law_${suffix}`] || 0) + Number(counts[`article_${suffix}`] || 0);
 }
@@ -376,6 +719,7 @@ async function loadLaws() {
 }
 
 function resultNode(item) {
+  const citationItem = toCitationItem(item);
   const article = document.createElement("article");
   article.className = "result";
 
@@ -385,86 +729,47 @@ function resultNode(item) {
   const citation = document.createElement("div");
   citation.className = "citation";
 
+  const sourceLabel = document.createElement("span");
+  sourceLabel.className = "label";
+  sourceLabel.textContent = "法源";
+
   const lawName = document.createElement("span");
   lawName.className = "law-name";
-  lawName.textContent = item.law_name;
+  lawName.textContent = citationItem.law_name;
 
   const articleNo = document.createElement("span");
   articleNo.className = "article-no";
-  articleNo.textContent = item.article_no;
+  articleNo.textContent = citationItem.article_no;
 
-  citation.append(lawName, articleNo);
+  citation.append(sourceLabel, lawName, articleNo);
 
   const score = document.createElement("span");
   score.className = "score";
-  score.textContent = `分數 ${Number(item.score || 0).toFixed(2)}`;
+  score.textContent = `分數 ${Number(citationItem.score || 0).toFixed(2)}`;
 
   header.append(citation, score);
 
-  const actions = document.createElement("div");
-  actions.className = "result-actions";
-
-  const copyCitation = document.createElement("button");
-  copyCitation.type = "button";
-  copyCitation.className = "primary-inline-action";
-  copyCitation.textContent = "複製正式引用";
-  copyCitation.addEventListener("click", () => copyText(formatOfficialCitation(item), copyCitation));
-
-  const addToPackage = document.createElement("button");
-  addToPackage.type = "button";
-  addToPackage.className = "secondary-action";
-  addToPackage.textContent = isInCitationPackage(item.article_id) ? "已在引用包" : "加入引用包";
-  addToPackage.disabled = isInCitationPackage(item.article_id);
-  addToPackage.addEventListener("click", () => {
-    const added = addCitationPackageItem(item);
-    renderCitationPackage();
-    addToPackage.textContent = added ? "已加入" : "已在引用包";
-    addToPackage.disabled = true;
-  });
-
-  actions.append(copyCitation, addToPackage);
-
-  const snippet = document.createElement("p");
-  snippet.className = "snippet";
-  snippet.textContent = item.snippet || "";
-
-  const lawTextPanel = document.createElement("section");
-  lawTextPanel.className = "law-text-panel";
-  lawTextPanel.setAttribute("aria-label", "條文全文");
-
-  const lawTextLabel = document.createElement("div");
-  lawTextLabel.className = "law-text-label";
-  lawTextLabel.textContent = "條文全文";
-
-  const lawText = document.createElement("div");
-  lawText.className = "full-text";
-  lawText.append(
-    ...formatLawTextSegments(item.text).map((segment) => {
-      const paragraph = document.createElement("p");
-      paragraph.textContent = segment;
-      return paragraph;
-    }),
-  );
-
-  lawTextPanel.append(lawTextLabel, lawText);
+  const snippet = document.createElement("section");
+  snippet.className = "snippet-panel";
+  const snippetLabel = document.createElement("span");
+  snippetLabel.className = "label";
+  snippetLabel.textContent = "可對照片段";
+  const snippetText = document.createElement("p");
+  snippetText.className = "snippet";
+  snippetText.textContent = citationItem.snippet || "";
+  snippet.append(snippetLabel, snippetText);
 
   const meta = document.createElement("div");
   meta.className = "meta-row";
 
   const amended = document.createElement("span");
-  amended.textContent = `最新修正日：${text(item.latest_amended_at)}`;
+  amended.textContent = `最新修正日：${text(citationItem.latest_amended_at)}`;
 
   const effective = document.createElement("span");
-  effective.textContent = `生效日：${text(item.effective_at)}`;
+  effective.textContent = `生效日：${text(citationItem.effective_at)}`;
 
-  const source = document.createElement("a");
-  source.href = item.source_url;
-  source.target = "_blank";
-  source.rel = "noreferrer";
-  source.textContent = "官方來源";
-
-  meta.append(amended, effective, source);
-  article.append(header, actions, snippet, lawTextPanel, meta);
+  meta.append(amended, effective);
+  article.append(header, snippet, lawTextPanelNode("條文全文", citationItem.text), citationActionsNode(citationItem), meta);
   return article;
 }
 
@@ -500,18 +805,19 @@ function renderResults(results, suggestions = []) {
 function renderCitationPackage() {
   if (!els.citationPackageCount || !els.citationPackageList) return;
   const items = getCitationPackageItems();
-  els.citationPackageCount.textContent = `${items.length} 筆引用`;
+  els.citationPackageCount.textContent = `${items.length} 筆條文`;
   els.citationPackageList.replaceChildren();
 
   if (!items.length) {
     const empty = document.createElement("li");
     empty.className = "citation-package-empty";
-    empty.textContent = "尚未加入引用。搜尋條文後可把官方引用加入這裡，再一次複製。";
+    empty.textContent = "把條文加入這裡，整理成報價前可附上的法源附件。";
     els.citationPackageList.append(empty);
   } else {
     for (const item of items) {
+      const citation = toCitationItem(item);
       const row = document.createElement("li");
-      row.textContent = `${item.law_name} ${item.article_no}`;
+      row.textContent = articleCitationLabel(citation);
       els.citationPackageList.append(row);
     }
   }
@@ -576,10 +882,15 @@ async function init() {
   els.clearPackageButton?.addEventListener("click", () => {
     clearCitationPackage();
     renderCitationPackage();
-    setStatus("引用包已清空");
+    setStatus("法源附件包已清空");
   });
   renderCitationPackage();
-  await Promise.all([loadHealth(), loadSources(), loadChanges(), loadLaws()]);
+  const params = parseCitationUrlParams();
+  if (params.q && els.query) {
+    els.query.value = params.q;
+  }
+  await Promise.all([loadHealth(), loadSources(), loadChanges(), loadLaws(), loadCitationContexts()]);
+  await loadCitationDetail(params);
 }
 
 init();
