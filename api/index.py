@@ -13,4 +13,8 @@ if str(SRC) not in sys.path:
 from firelaw_api.api import create_app  # noqa: E402
 
 
-app = create_app(ROOT / "data" / "firelaw.sqlite")
+app = create_app(
+    ROOT / "data" / "firelaw.sqlite",
+    app_db_path=ROOT / "data" / "firebasis.sqlite",
+    schedule_writable=False,
+)

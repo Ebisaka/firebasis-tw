@@ -1,8 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "src/firelaw_api/static/react",
   "functions": {
     "api/index.py": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "excludeFiles": "{.git/**,.gstack/**,.pytest_cache/**,.venv/**,node_modules/**,outputs/**,work/**,tests/**,frontend/**,scripts/**,**/__pycache__/**,**/*.pyc,*.url}"
     }
   },
   "rewrites": [

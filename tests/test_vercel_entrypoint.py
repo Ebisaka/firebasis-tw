@@ -21,19 +21,24 @@ def test_vercel_entrypoint_serves_packaged_demo_database():
 
     health = client.get("/health").json()
     home = client.get("/")
+    schedule = client.get("/schedule")
     improvement = client.get("/improvement")
+    citation = client.get("/citation")
     home_preview = client.get("/home-preview")
+    schedule_health = client.get("/schedule/health").json()
     search = client.get("/search", params={"q": "滅火器", "limit": 1}).json()
 
     assert health["status"] == "ok"
     assert health["law_count"] >= 1
     assert home.status_code == 200
-    assert "消防公司 / 檢修人員 / 報價前溝通" in home.text
-    assert "開啟改善依據反查" in home.text
-    assert improvement.status_code == 200
-    assert "消防改善依據反查" in improvement.text
-    assert "工作台" not in improvement.text
+    assert 'id="root"' in home.text
+    assert "/react/assets/" in home.text
+    assert schedule.status_code == 200
+    assert 'id="root"' in schedule.text
+    assert improvement.status_code == 404
+    assert citation.status_code == 404
     assert home_preview.status_code == 200
-    assert "消防公司 / 檢修人員 / 報價前溝通" in home_preview.text
-    assert "依據素材預覽" in home_preview.text
+    assert home_preview.text == home.text
+    assert schedule_health["status"] in {"degraded", "read_only"}
+    assert schedule_health["writable"] is False
     assert search["results"]

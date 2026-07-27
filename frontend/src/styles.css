@@ -1,0 +1,71 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+:root {
+  --fb-primary: #fece14;
+  --fb-secondary: #000000;
+  --fb-surface: #ffffff;
+  --fb-muted-surface: #f6f5f0;
+  --fb-line: #d8d6ca;
+  --fb-text: #111827;
+  --fb-muted: #5f665f;
+  --fb-success: #16a34a;
+  --fb-warning: #d97706;
+  --fb-danger: #dc2626;
+  font-family: Poppins, "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  color: var(--fb-text);
+  background: var(--fb-muted-surface);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: var(--fb-primary);
+  color: var(--fb-secondary);
+}
+
+@layer components {
+  .card {
+    border-radius: 8px;
+  }
+
+  .button--primary {
+    border: 1px solid var(--fb-secondary);
+    background: var(--fb-primary);
+    color: var(--fb-secondary);
+  }
+
+  .button--primary:hover,
+  .button--primary[data-hovered="true"] {
+    background: color-mix(in srgb, var(--fb-primary) 92%, var(--fb-secondary));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

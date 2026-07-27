@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FireBasis 排程與派工</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body class="schedule-page">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">FireBasis / 消防公司營運流程</p>
+        <h1>排程派工</h1>
+        <p class="schedule-subtitle">把場所、技師、定期檢查、派工、改期與狀態紀錄接成可追溯流程。</p>
+      </div>
+      <nav class="topnav" aria-label="主要連結">
+        <a href="/">產品首頁</a>
+        <a href="/schedule">排程派工</a>
+        <a href="/docs">開發者文件</a>
+      </nav>
+    </header>
+
+    <main class="shell schedule-shell">
+      <section class="notice" aria-label="排程狀態">
+        <strong>排程派工資料層已接上</strong>
+        <span>這一版確認場所、技師、定期檢查、派工、狀態與改期紀錄能被系統保存。</span>
+      </section>
+
+      <section class="schedule-smoke-grid">
+        <article class="schedule-smoke-card">
+          <span class="label">資料庫狀態</span>
+          <strong id="scheduleHealth">檢查中</strong>
+          <p id="scheduleHealthDetail">正在確認排程資料是否可用。</p>
+        </article>
+        <article class="schedule-smoke-card">
+          <span class="label">近期檢查</span>
+          <strong id="scheduleVisitCount">讀取中</strong>
+          <p id="scheduleCalendarDetail">正在整理近期排程。</p>
+        </article>
+      </section>
+    </main>
+
+    <script src="/assets/schedule.js" defer></script>
+  </body>
+</html>

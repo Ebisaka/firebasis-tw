@@ -55,3 +55,36 @@ def test_update_command_reports_change_counts(monkeypatch, tmp_path):
 
     assert result.exit_code == 0
     assert "Changes: laws +0 ~0 -0; articles +0 ~1 -0" in result.output
+
+
+def test_serve_command_accepts_app_db(monkeypatch, tmp_path):
+    calls = {}
+
+    def fake_run(app_instance, host, port):
+        calls["app"] = app_instance
+        calls["host"] = host
+        calls["port"] = port
+
+    monkeypatch.setattr("firelaw_api.cli.uvicorn.run", fake_run)
+    db_path = tmp_path / "firelaw.sqlite"
+    app_db_path = tmp_path / "firebasis.sqlite"
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "serve",
+            "--db",
+            str(db_path),
+            "--app-db",
+            str(app_db_path),
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "8010",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert calls["host"] == "127.0.0.1"
+    assert calls["port"] == 8010
+    assert app_db_path.exists()

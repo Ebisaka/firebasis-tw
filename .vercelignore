@@ -1,0 +1,13 @@
+.git
+.gstack
+.pytest_cache
+.venv
+node_modules
+outputs
+work
+tests
+scripts
+__pycache__
+**/__pycache__
+**/*.pyc
+*.url

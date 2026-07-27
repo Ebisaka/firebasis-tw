@@ -62,7 +62,8 @@ def semantic_update(
 @app.command()
 def serve(
     db: Path = typer.Option(Path("data/firelaw.sqlite"), "--db", help="SQLite database path."),
+    app_db: Path = typer.Option(Path("data/firebasis.sqlite"), "--app-db", help="FireBasis product SQLite database path."),
     host: str = typer.Option("127.0.0.1", "--host", help="Host to bind."),
     port: int = typer.Option(8000, "--port", help="Port to bind."),
 ) -> None:
-    uvicorn.run(create_app(db), host=host, port=port)
+    uvicorn.run(create_app(db, app_db_path=app_db), host=host, port=port)

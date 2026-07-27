@@ -32,7 +32,7 @@ firelaw-api = "firelaw_api.cli:app"
 where = ["src"]
 
 [tool.setuptools.package-data]
-firelaw_api = ["static/*"]
+firelaw_api = ["static/*", "static/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

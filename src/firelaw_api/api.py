@@ -4,54 +4,65 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from .ingest import LEGAL_NOTICE
+from .schedule_routes import create_schedule_router
+from .schedule_store import ScheduleStore
 from .search_assist import assist_search
 from .semantic import DEFAULT_SEMANTIC_MODEL, SemanticUnavailableError, semantic_search
 from .store import FirelawStore
 
 STATIC_DIR = Path(__file__).parent / "static"
+REACT_INDEX = STATIC_DIR / "react" / "index.html"
+REACT_ASSETS = STATIC_DIR / "react"
+
+
+def frontend_response(fallback_name: str) -> FileResponse:
+    if REACT_INDEX.exists():
+        return FileResponse(REACT_INDEX)
+    return FileResponse(STATIC_DIR / fallback_name)
 
 
 def create_app(
     db_path: Path,
+    app_db_path: Path | None = None,
+    schedule_writable: bool = True,
     semantic_model_name: str = DEFAULT_SEMANTIC_MODEL,
     semantic_provider_factory=None,
 ) -> FastAPI:
-    store = FirelawStore(Path(db_path))
+    db_path = Path(db_path)
+    store = FirelawStore(db_path)
+    resolved_app_db_path = Path(app_db_path) if app_db_path else db_path.with_name("firebasis.sqlite")
+    schedule_store = ScheduleStore(resolved_app_db_path, writable=schedule_writable)
+    if schedule_writable:
+        schedule_store.migrate()
     app = FastAPI(
         title="台灣消防法規查詢 API",
         version="0.1.0",
         description=LEGAL_NOTICE,
     )
+    app.include_router(create_schedule_router(schedule_store))
+    if REACT_ASSETS.exists():
+        app.mount("/react", StaticFiles(directory=REACT_ASSETS), name="react")
 
     @app.get("/", include_in_schema=False)
     def index():
-        return FileResponse(STATIC_DIR / "home-preview.html")
+        return frontend_response("home-preview.html")
 
-    @app.get("/ui", include_in_schema=False)
-    def ui():
-        return FileResponse(STATIC_DIR / "index.html")
-
-    @app.get("/citation", include_in_schema=False)
-    def citation():
-        return FileResponse(STATIC_DIR / "index.html")
-
-    @app.get("/improvement", include_in_schema=False)
-    def improvement():
-        return FileResponse(STATIC_DIR / "improvement.html")
+    @app.get("/schedule", include_in_schema=False)
+    def schedule():
+        return frontend_response("schedule.html")
 
     @app.get("/home-preview", include_in_schema=False)
     def home_preview():
-        return FileResponse(STATIC_DIR / "home-preview.html")
+        return frontend_response("home-preview.html")
 
     @app.get("/assets/{asset_name}", include_in_schema=False)
     def asset(asset_name: str):
         allowed_assets = {
-            "app.js": "text/javascript; charset=utf-8",
             "home-preview.js": "text/javascript; charset=utf-8",
-            "improvement.js": "text/javascript; charset=utf-8",
-            "improvement-data.json": "application/json; charset=utf-8",
+            "schedule.js": "text/javascript; charset=utf-8",
             "styles.css": "text/css; charset=utf-8",
         }
         if asset_name not in allowed_assets:

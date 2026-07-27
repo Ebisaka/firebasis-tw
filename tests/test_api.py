@@ -25,10 +25,12 @@ def test_api_exposes_health_sources_laws_articles_and_search(tmp_path):
     client = _client(tmp_path)
 
     home = client.get("/")
+    schedule = client.get("/schedule")
     ui = client.get("/ui")
     citation = client.get("/citation")
     improvement = client.get("/improvement")
     home_preview = client.get("/home-preview")
+    react_asset = client.get("/react/assets/" + next((Path(__file__).parents[1] / "src" / "firelaw_api" / "static" / "react" / "assets").glob("*.js")).name)
     home_preview_js = client.get("/assets/home-preview.js")
     improvement_js = client.get("/assets/improvement.js")
     improvement_data = client.get("/assets/improvement-data.json")
@@ -37,52 +39,29 @@ def test_api_exposes_health_sources_laws_articles_and_search(tmp_path):
     sources = client.get("/meta/sources").json()
     laws = client.get("/laws").json()
     law = client.get(f"/laws/{laws[0]['law_id']}").json()
-    citation_detail_page = client.get(
-        "/citation",
-        params={"article_id": law["articles"][0]["article_id"], "q": "滅火器", "from": "improvement"},
-    )
     article = client.get(f"/articles/{law['articles'][0]['article_id']}").json()
     search = client.get("/search", params={"q": "滅火器"}).json()
     assist = client.get("/search/assist", params={"q": "店面要放幾個滅火器"}).json()
     changes = client.get("/meta/changes").json()
 
     assert home.status_code == 200
-    assert "消防公司 / 檢修人員 / 報價前溝通" in home.text
-    assert "報價前，先把" in home.text
-    assert "開啟改善依據反查" in home.text
-    assert "工作台" not in home.text
-    assert ui.status_code == 200
-    assert "台灣消防法規引用" in ui.text
-    assert "我想查" in ui.text
-    assert "工作台" not in ui.text
-    assert citation.status_code == 200
-    assert "台灣消防法規引用" in citation.text
-    assert "我想查" in citation.text
-    assert citation_detail_page.status_code == 200
-    assert "引用詳情" in citation_detail_page.text
-    assert ui.status_code == citation.status_code
-    assert improvement.status_code == 200
-    assert "消防改善依據反查" in improvement.text
-    assert "Beta" in improvement.text
-    assert "僅提供候選官方依據與保守說明" in improvement.text
-    assert "工作台" not in improvement.text
+    assert 'id="root"' in home.text
+    assert "/react/assets/" in home.text
+    assert schedule.status_code == 200
+    assert 'id="root"' in schedule.text
+    assert ui.status_code == 404
+    assert citation.status_code == 404
+    assert improvement.status_code == 404
+    assert client.get("/improvement/items").status_code == 404
+    assert client.post("/improvement/evidence-package/preview", json={}).status_code == 404
     assert home_preview.status_code == 200
-    assert "消防公司 / 檢修人員 / 報價前溝通" in home_preview.text
-    assert "報價前，先把" in home_preview.text
-    assert "消防缺失說清楚" in home_preview.text
-    assert "依據素材預覽" in home_preview.text
-    assert "缺失品項" in home_preview.text
-    assert "保守說明" in home_preview.text
-    assert "現場確認點" in home_preview.text
-    assert "候選官方依據" in home_preview.text
-    assert "報價前溝通素材" in home_preview.text
-    assert "工作台" not in home_preview.text
+    assert home_preview.text == home.text
+    assert react_asset.status_code == 200
+    assert "text/javascript" in react_asset.headers["content-type"]
     assert home_preview_js.status_code == 200
     assert "text/javascript" in home_preview_js.headers["content-type"]
-    assert improvement_js.status_code == 200
-    assert "text/javascript" in improvement_js.headers["content-type"]
-    assert improvement_data.status_code == 200
-    assert "application/json" in improvement_data.headers["content-type"]
+    assert improvement_js.status_code == 404
+    assert improvement_data.status_code == 404
     assert favicon.status_code == 200
     assert health["status"] == "ok"
     assert sources["license"]["name"] == "政府資料開放授權條款-第1版"
@@ -104,13 +83,14 @@ def test_api_missing_database_is_degraded_and_search_returns_service_error(tmp_p
     client = TestClient(create_app(tmp_path / "missing.sqlite"))
 
     assert client.get("/").status_code == 200
-    assert "消防公司 / 檢修人員 / 報價前溝通" in client.get("/").text
+    assert 'id="root"' in client.get("/").text
     improvement = client.get("/improvement")
-    assert improvement.status_code == 200
-    assert "消防改善依據反查" in improvement.text
+    citation = client.get("/citation")
+    assert improvement.status_code == 404
+    assert citation.status_code == 404
     home_preview = client.get("/home-preview")
     assert home_preview.status_code == 200
-    assert "消防公司 / 檢修人員 / 報價前溝通" in home_preview.text
+    assert home_preview.text == client.get("/").text
     assert client.get("/health").json()["status"] == "degraded"
     assert client.get("/meta/changes").status_code == 503
     assert client.get("/search", params={"q": "滅火器"}).status_code == 503
